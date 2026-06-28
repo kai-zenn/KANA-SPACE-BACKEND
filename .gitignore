@@ -1,6 +1,12 @@
 .env
 tmp
 *.exe
+*.test
+.air.toml
 
 .DS_Store
 .vscode/
+
+internal/modules/lapak
+internal/modules/space
+internal/middlewares
