@@ -1,8 +1,6 @@
 package user
 
 import (
-	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
-	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
 	"context"
 	"errors"
 	"fmt"
@@ -43,9 +41,9 @@ type IUserUseCase interface {
   Login(ctx context.Context, req UserLoginRequest) (*UserLoginResponse, error)
   LoginWithGoogle(ctx context.Context, req GoogleAuthRequest) (*UserLoginResponse, error)
   GetProfileByUsername(ctx context.Context, username string) (*User, error)
-  UpgradeSellerRequest(ctx context.Context, req UpgradeSellerRequest) error
+  UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error
   Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error
-  UpdatePhotoProfile(ctx context.Context, userID uuid.UUID, param PhotoUpdate) (string, error)
+  UpdatePhotoProfile(param PhotoUpdate) (string, error)
 }
 
 type UserUseCase struct {
@@ -201,4 +199,51 @@ func (uc *UserUseCase) UpdatePhotoProfile(param PhotoUpdate) (string, error) {
     return "", fmt.Errorf("gagal memperbarui foto profil: %w", err)
   }
   return newPhotoLink, nil
+}
+
+func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthRequest) (*UserLoginResponse, error) {
+  googleClaims, err := uc.googleVerifier.VerifyToken(ctx, req.IDToken)
+  if err != nil{
+    return nil, fmt.Errorf("Google authentication failed: %w", err)
+  }
+
+  var user *User
+  user, _ = uc.ur.GetProfile(ctx, UserParam{Email: googleClaims.Email})
+  if user == nil {
+    baseUsername := strings.Split(googleClaims.Email, "@")[0]
+    username := fmt.Sprintf("%s_%s", baseUsername, uuid.New().String()[:5])
+    newUser := User{
+      ID:        uuid.New(),
+      FirstName: googleClaims.FirstName,
+      LastName:  googleClaims.LastName,
+      Username:  username,
+      Email:     googleClaims.Email,
+      Password: nil,
+      GoogleID:  &googleClaims.GoogleID,
+      ProfilePhotoLink: googleClaims.Picture,
+      Role:      RoleUser,
+      CreatedAt: time.Now(),
+      UpdatedAt: time.Now(),
+    }
+    err := uc.ur.CreateUser(ctx, &newUser)
+    if err != nil {
+      return nil, fmt.Errorf("Gagal mendaftarkan user via Google: %w", err)
+    }
+    
+  } else if user.GoogleID == nil {
+    updates := map[string]interface{}{
+      "google_id": googleClaims.GoogleID,
+      "updated_at": time.Now(),
+    }
+    err := uc.ur.UpdateUser(ctx, user.ID, updates)
+    if err != nil {
+      return nil, fmt.Errorf("Gagal memperbarui user: %w", err)
+    }
+  }
+
+  token, err := uc.jwtAuth.GenerateToken(user.ID, user.Role)
+  if err != nil {
+    return nil, fmt.Errorf("Gagal menghasilkan token: %w", err)
+  }
+  return &UserLoginResponse{Token: token}, nil
 }
