@@ -1,0 +1,58 @@
+package rest
+
+import (
+	"KANA-SPACE-BACKEND/internal/middlewares"
+	"KANA-SPACE-BACKEND/internal/modules/user"
+	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type Rest struct {
+  router *gin.Engine
+  db     *gorm.DB
+  jwtAuth jwt.Interface
+  bcrypt  user.BcryptInterface
+  storage user.StorageInterface
+  googleVerifier user.GoogleVerifierInterface
+}
+
+func NewRest(router *gin.Engine, db *gorm.DB, jwtAuth jwt.Interface, bcrypt user.BcryptInterface, storage user.StorageInterface, googleVerifier user.GoogleVerifierInterface) *Rest {
+  return &Rest{
+    router: router,
+    db: db,
+    jwtAuth: jwtAuth,
+    bcrypt: bcrypt,
+    storage: storage,
+    googleVerifier: googleVerifier,
+  }
+}
+
+func (r *Rest) MountEndPoint() {
+  api := r.router.Group("api/v1")
+
+  userRepo := user.NewUserRepository(r.db)
+  userUseCase := user.NewUserUseCase(userRepo, r.bcrypt, r.jwtAuth, r.storage, r.googleVerifier)
+  userHandler := user.NewUserHandler(userUseCase)
+
+  authGroup := api.Group("/auth")
+  {
+    authGroup.POST("/register", userHandler.Register)
+    authGroup.POST("/login", userHandler.Login)
+    authGroup.POST("/google", userHandler.LoginWithGoogle)
+  }
+
+  userGroup := api.Group("/user")
+  userGroup.Use(middlewares.Authenticate(r.jwtAuth))
+  {
+    userGroup.GET("/profile/:username", userHandler.GetProfileByUsername)
+    userGroup.PATCH("/profile", userHandler.UpdateProfile)
+    userGroup.POST("/profile/photo", userHandler.UpdatePhotoProfile)
+    userGroup.POST("/upgrade", userHandler.UpgradeToSeller)
+  }
+}
+
+func (r *Rest) Serve(port string) {
+  r.router.Run(port)
+}
