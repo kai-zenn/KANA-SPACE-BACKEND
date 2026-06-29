@@ -14,7 +14,7 @@ type Config struct {
 	DBPassword string `mapstructure:"DB_PASSWORD"`
 	DBName     string `mapstructure:"DB_NAME"`
 	JWTSecret  string `mapstructure:"JWT_SECRET"`
-	JWTExpiry  int    `mapstructure:"JWT_EXPIRY"`
+	JWTExpiry  string    `mapstructure:"JWT_EXPIRY"`
 	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
 }
@@ -26,10 +26,9 @@ func LoadConf() (*Config, error)  {
   
   err := viper.ReadInConfig()
   if err != nil {
-    if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-      return nil, nil
+    if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+      return nil, fmt.Errorf("gagal membaca config: %w", err)
     }
-    return nil, fmt.Errorf("gagal membaca config: %w", err)
   }
   
   var config Config

@@ -3,10 +3,13 @@ package cmd
 import (
 	"KANA-SPACE-BACKEND/internal/configs"
 	"KANA-SPACE-BACKEND/internal/modules/user"
+	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
 	"KANA-SPACE-BACKEND/internal/rest"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,12 +30,25 @@ func main() {
   if err != nil {
     log.Fatalf("Gagal connect ke database: %v", err)
   }
+
+  var expiryTime time.Duration
+  if daysStr, found := strings.CutSuffix(conf.JWTExpiry, "d"); found {
+  	days, err := strconv.Atoi(daysStr)
+  	if err != nil {
+  		log.Fatalf("Angka JWT_EXPIRY di .env tidak valid: %v", err)
+  	}
+  	expiryTime = time.Duration(days) * 24 * time.Hour
+	} else {
+		expiryTime, err = time.ParseDuration(conf.JWTExpiry)
+		if err != nil {
+			log.Fatalf("Format JWT_EXPIRY tidak valid: %v", err)
+		}
+	}
  
- 
- jwtService := jwt.NewJWTToken(conf.JWTSecret, time.Duration(conf.JWTExpiry))
+ jwtService := jwt.NewJWTToken(conf.JWTSecret, expiryTime)
  // googleVerifier := user.GoogleVerifierInterface(conf.GoogleClientID, nil)
 
- var bcrypt user.BcryptInterface
+ var bcrypt = bcrypt.NewCryptoBcrypt()
  var storage user.StorageInterface
 
  router := gin.Default()

@@ -9,7 +9,7 @@ type Interface interface {
 
 type cryptoBcrypt struct {}
 
-func newCryptoBcrypt() Interface {
+func NewCryptoBcrypt() Interface {
 	return &cryptoBcrypt{}
 }
 

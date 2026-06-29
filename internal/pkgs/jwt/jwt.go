@@ -24,10 +24,10 @@ type JsonWebToken struct {
 	ExpiredTime time.Duration
 }
 
-func NewJWTToken(secretKey string, expire time.Duration) Interface {
+func NewJWTToken(secretKey string, expiredTime time.Duration) Interface {
   return &JsonWebToken{
     SecretKey: []byte(secretKey),
-    ExpiredTime: expire,
+    ExpiredTime: expiredTime,
   }
 }
 
