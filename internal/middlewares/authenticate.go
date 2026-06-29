@@ -10,7 +10,7 @@ import (
   
 )
 
-func Authenticate(jwtService *jwt.JsonWebToken) gin.HandlerFunc {
+func Authenticate(jwtService jwt.Interface) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     authHeader := ctx.GetHeader("Authorization")
     

@@ -234,6 +234,7 @@ func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthReques
     if err != nil {
       return nil, fmt.Errorf("Gagal mendaftarkan user via Google: %w", err)
     }
+    user = &newUser
     
   } else if user.GoogleID == nil {
     updates := map[string]interface{}{
