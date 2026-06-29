@@ -152,23 +152,28 @@ func (uc *UserUseCase) GetProfileByUsername(ctx context.Context, username string
 
 func (uc *UserUseCase) Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error {
 	updates := make(map[string]interface{})
-	if req.FirstName != "" {
-		updates["first_name"] = req.FirstName
+	if req.FirstName != nil {
+		updates["first_name"] = *req.FirstName
 	}
-	if req.LastName != "" {
-		updates["last_name"] = req.LastName
+	if req.LastName != nil {
+		updates["last_name"] = *req.LastName
 	}
-	if req.Username != "" {
-		existing, _ := uc.ur.GetProfileByUsername(ctx, req.Username)
-		if existing != nil && existing.ID != userID {
-			return errors.New("username sudah digunakan oleh orang lain")
-		}
-		updates["username"] = req.Username
+	if req.Username != nil {
+  	usernameVal := *req.Username
+  	if usernameVal == "" {
+  		return errors.New("username tidak boleh kosong")
+  		}
+  
+  	existing, _ := uc.ur.GetProfileByUsername(ctx, usernameVal)
+  	if existing != nil && existing.ID != userID {
+  		return errors.New("username sudah digunakan oleh orang lain")
+  		}
+    updates["username"] = usernameVal
 	}
-	if req.PhoneNumber != "" {
+	if req.PhoneNumber != nil {
 		updates["phone_number"] = req.PhoneNumber
 	}
-	if req.Address != "" {
+	if req.Address != nil {
 		updates["address"] = req.Address
 	}
 	if len(updates) == 0 {
@@ -210,7 +215,7 @@ func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthReques
   var user *User
   user, _ = uc.ur.GetProfile(ctx, UserParam{Email: googleClaims.Email})
   if user == nil {
-    baseUsername := strings.Split(googleClaims.Email, "@")[0]
+    baseUsername := strings.Split(strings.Split(googleClaims.Email, "@")[0], ".")[0]
     username := fmt.Sprintf("%s_%s", baseUsername, uuid.New().String()[:5])
     newUser := User{
       ID:        uuid.New(),

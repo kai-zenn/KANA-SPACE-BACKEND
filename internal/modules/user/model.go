@@ -42,11 +42,11 @@ type UserParam struct {
 }
 
 type UpdateProfileRequest struct {
-	FirstName        string `json:"first_name"`
-	LastName         string `json:"last_name"`
-	Username string `json:"username"`
-	PhoneNumber      string `json:"phone_number"`
-	Address          string `json:"address"`
+	FirstName        *string `json:"first_name"`
+	LastName         *string `json:"last_name"`
+	Username         *string `json:"username"`
+	PhoneNumber      *string `json:"phone_number"`
+	Address          *string `json:"address"`
 }
 
 type PhotoUpdate struct {
