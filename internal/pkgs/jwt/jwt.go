@@ -19,19 +19,19 @@ type Interface interface {
 	ValidateToken(tokenString string) (*Claims, error)
 }
 
-type jsonWebToken struct {
+type JsonWebToken struct {
 	SecretKey   []byte
 	ExpiredTime time.Duration
 }
 
 func NewJWTToken(secretKey string, expire time.Duration) Interface {
-  return &jsonWebToken{
+  return &JsonWebToken{
     SecretKey: []byte(secretKey),
     ExpiredTime: expire,
   }
 }
 
-func (j *jsonWebToken) GenerateToken(userId uuid.UUID, role string) (string, error) {
+func (j *JsonWebToken) GenerateToken(userId uuid.UUID, role string) (string, error) {
   claims := Claims{
     UserId: userId,
     Role: role,
@@ -45,7 +45,7 @@ func (j *jsonWebToken) GenerateToken(userId uuid.UUID, role string) (string, err
   return token.SignedString(j.SecretKey)
 }
 
-func (j *jsonWebToken) ValidateToken(tokenString string) (*Claims, error) {
+func (j *JsonWebToken) ValidateToken(tokenString string) (*Claims, error) {
   token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func (token *jwt.Token) (interface{}, error) {
     return j.SecretKey, nil
   })
