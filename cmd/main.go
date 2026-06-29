@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"KANA-SPACE-BACKEND/internal/configs"
@@ -54,5 +54,7 @@ func main() {
  router := gin.Default()
  app := rest.NewRest(router, db, jwtService, bcrypt, storage, nil)
  app.MountEndPoint()
+ 
+ fmt.Println("\n  ➜  Local: http://localhost:9090/")
  app.Serve(":9090")
 }
