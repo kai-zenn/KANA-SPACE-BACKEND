@@ -35,7 +35,12 @@ func (ur *UserRepository) CreateUser(ctx context.Context, user *User) error {
 func (ur *UserRepository) GetProfileByUsername(ctx context.Context, username string) (*User, error) {
 	var user User
 
-	err := ur.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	err := ur.db.WithContext(ctx).
+	Where("username = ?", username).
+	Preload("Followers").
+	Preload("Following").
+	First(&user).Error
+	
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +70,6 @@ func (ur *UserRepository) GetByID(ctx context.Context, userID uuid.UUID) (*User,
 	return &user, nil
 }
 
-
 func (ur *UserRepository) UpdateUser(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error {
 	err := ur.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(updates).Error
 	if err != nil {
@@ -75,11 +79,7 @@ func (ur *UserRepository) UpdateUser(ctx context.Context, userID uuid.UUID, upda
 }
 
 func (ur *UserRepository) UpdatePhoto(ctx context.Context, userID uuid.UUID, photoLink string) error {
-  err := ur.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("profile_photo_link", photoLink).Error
-  if err != nil {
-  	return err
-  }
-  return nil
+  return ur.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("profile_photo_link", photoLink).Error
 }
 
 func (ur *UserRepository) FollowUsers(ctx context.Context, followerID, followingID uuid.UUID) error {

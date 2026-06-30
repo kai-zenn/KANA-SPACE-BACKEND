@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ type JWTInterface interface {
 }
 
 type StorageInterface interface {
-  UploadPhotoProfile(ctx context.Context, param PhotoUpdate) (string, error)
+  UploadPhotoProfile(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (string, error)
   DeletePhotoProfile(ctx context.Context, fileURL string) error
 }
 
@@ -44,7 +45,7 @@ type IUserUseCase interface {
   UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error
   Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error
   UpdatePassword(ctx context.Context, userID uuid.UUID, req UpdatePasswordRequest) error
-  UpdatePhotoProfile(param PhotoUpdate) (string, error)
+  UpdatePhotoProfile(ctx context.Context, param PhotoUpdate) (string, error)
   FollowUsers(ctx context.Context, param FollowParam) error
   UnfollowUser(ctx context.Context, param FollowParam) error
 }
@@ -226,28 +227,26 @@ func (uc *UserUseCase) UpdatePassword(ctx context.Context, userID uuid.UUID, req
 	return nil
 }
 
-func (uc *UserUseCase) UpdatePhotoProfile(param PhotoUpdate) (string, error) {
-  ctx := context.Background()
-
+func (uc *UserUseCase) UpdatePhotoProfile(ctx context.Context, param PhotoUpdate) (string, error) {
   user, err := uc.ur.GetByID(ctx, param.UserID)
-  if err != nil {
-    return "", errors.New("User Tidak ditemukan")
-  }
-
-  if user.ProfilePhotoLink != "" && !strings.Contains(user.ProfilePhotoLink, "googleusercontent.com") {
-    _ = uc.storage.DeletePhotoProfile(ctx, user.ProfilePhotoLink)
-  }
-
-  newPhotoLink, err := uc.storage.UploadPhotoProfile(ctx, param)
-  if err != nil {
-    return "", fmt.Errorf("gagal mengunggah foto profil: %w", err)
-  }
+	if err != nil {
+		return "", errors.New("User Tidak ditemukan")
+	}
   
-  err = uc.ur.UpdatePhoto(ctx, param.UserID, newPhotoLink)
-  if err != nil {
-    return "", fmt.Errorf("gagal memperbarui foto profil: %w", err)
-  }
-  return newPhotoLink, nil
+	if user.ProfilePhotoLink != "" && !strings.Contains(user.ProfilePhotoLink, "googleusercontent.com") {
+		_ = uc.storage.DeletePhotoProfile(ctx, user.ProfilePhotoLink)
+	}
+  
+	newPhotoLink, err := uc.storage.UploadPhotoProfile(ctx, param.UserID, param.Image)
+	if err != nil {
+		return "", fmt.Errorf("gagal mengunggah foto profil: %w", err)
+	}
+  
+	err = uc.ur.UpdatePhoto(ctx, param.UserID, newPhotoLink)
+	if err != nil {
+		return "", fmt.Errorf("gagal memperbarui foto profil: %w", err)
+	}
+	return newPhotoLink, nil
 }
 
 func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthRequest) (*UserLoginResponse, error) {

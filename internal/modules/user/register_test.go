@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"mime/multipart"
 	"testing"
 
 	"github.com/google/uuid"
@@ -66,7 +67,7 @@ type mockJWT struct{}
 func (m *mockJWT) GenerateToken(userID uuid.UUID, role string) (string, error) { return "", nil }
 
 type mockStorage struct{}
-func (m *mockStorage) UploadPhotoProfile(ctx context.Context, param PhotoUpdate) (string, error) { return "", nil }
+func (m *mockStorage) UploadPhotoProfile(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (string, error) { return "", nil }
 func (m *mockStorage) DeletePhotoProfile(ctx context.Context, fileURL string) error { return nil }
 
 type mockGoogleVerifier struct{}
