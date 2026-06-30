@@ -35,6 +35,8 @@ func NewRest(router *gin.Engine,
 }
 
 func (r *Rest) MountEndPoint() {
+  r.router.Static("/uploads", "./uploads")
+  
   api := r.router.Group("/api/v1")
   
   userRepo := user.NewUserRepository(r.db)
@@ -53,12 +55,13 @@ func (r *Rest) MountEndPoint() {
   {
     userGroup.GET("/profile/:username", userHandler.GetProfileByUsername)
     userGroup.PATCH("/profile", userHandler.UpdateProfile)
+    userGroup.PUT("/profile/password", userHandler.UpdatePassword)
     userGroup.POST("/profile/photo", userHandler.UpdatePhotoProfile)
     userGroup.POST("/upgrade", userHandler.UpgradeToSeller)
     userGroup.POST("/:id/follow", userHandler.FollowUsers)
     userGroup.POST("/:id/unfollow", userHandler.UnfollowUser)
   }
-}
+} 
 
 func (r *Rest) Serve(port string) {
   r.router.Run(port)

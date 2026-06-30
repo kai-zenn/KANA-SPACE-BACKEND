@@ -4,9 +4,9 @@ import (
 	"KANA-SPACE-BACKEND/internal/configs"
 	"KANA-SPACE-BACKEND/internal/database"
 	"KANA-SPACE-BACKEND/internal/database/seeding"
-	"KANA-SPACE-BACKEND/internal/modules/user"
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
+	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"KANA-SPACE-BACKEND/internal/rest"
 	"fmt"
 	"log"
@@ -73,13 +73,13 @@ func main() {
 	}
  
  jwtService := jwt.NewJWTToken(conf.JWTSecret, expiryTime)
+ store := storage.NewLocalStorage("uploads/v1/photos")
  // googleVerifier := user.GoogleVerifierInterface(conf.GoogleClientID, nil)
 
  var bcryptServic = bcrypt.NewCryptoBcrypt()
- var storage user.StorageInterface
 
  router := gin.Default()
- app := rest.NewRest(router, db, jwtService, bcryptServic, storage, nil)
+ app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil)
  app.MountEndPoint()
  
  fmt.Println("\n  ➜  Local: http://localhost:9090/")
