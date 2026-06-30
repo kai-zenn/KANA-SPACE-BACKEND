@@ -97,7 +97,6 @@ func (h *UserHandler) LoginWithGoogle(ctx *gin.Context) {
   })
 }
 
-
 func (h *UserHandler) GetProfileByUsername(ctx *gin.Context) {
   username := ctx.Param("username")
   if username == "" {
@@ -243,5 +242,83 @@ func (h *UserHandler) UpdatePhotoProfile(ctx *gin.Context) {
     "data": gin.H{
 			"profile_photo_link": newPhoto,
 		},
+  })
+}
+
+func (h *UserHandler) FollowUsers(ctx *gin.Context) {
+  userID, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "message": "Sesi anda tidak valid, silahkan login ulang",
+    })
+    return
+  }
+
+  targetIDStr := ctx.Param("id")
+  followingID, err := uuid.Parse(targetIDStr)
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "ID tidak valid",
+    })
+    return
+  }
+
+  req := FollowParam{
+    FollowerID: userID.(uuid.UUID),
+    FollowingID: followingID,
+  }
+
+  if err := h.useCase.FollowUsers(ctx.Request.Context(), req); err != nil {
+    ctx.JSON(http.StatusInternalServerError, gin.H{
+      "status":  false,
+      "message": "Gagal mengikuti pengguna",
+    })
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status":  true,
+    "message": "Berhasil mengikuti pengguna",
+  })
+}
+
+func (h *UserHandler) UnfollowUser(ctx *gin.Context) {
+  userID, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "message": "Sesi anda tidak valid, silahkan login ulang",
+    })
+    return
+  }
+
+  targetIDStr := ctx.Param("id")
+  followingID, err := uuid.Parse(targetIDStr)
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "ID tidak valid",
+    })
+    return
+  }
+
+  req := FollowParam{
+    FollowerID: userID.(uuid.UUID),
+    FollowingID: followingID,
+  }
+
+  if err := h.useCase.UnfollowUser(ctx.Request.Context(), req); err != nil {
+    ctx.JSON(http.StatusInternalServerError, gin.H{
+      "status":  false,
+      "message": "Gagal membatalkan pengikut",
+    })
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status":  true,
+    "message": "Berhasil membatalkan pengikut",
   })
 }

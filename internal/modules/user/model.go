@@ -62,6 +62,6 @@ type UpgradeSellerRequest struct {
 }
 
 type FollowParam struct {
-  FollowerID uuid.UUID `json:"follower_id" binding:"required"`
-  FollowingID uuid.UUID `json:"following_id" binding:"required"`
+  FollowerID uuid.UUID 
+  FollowingID uuid.UUID 
 }

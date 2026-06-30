@@ -18,7 +18,12 @@ type Rest struct {
   googleVerifier user.GoogleVerifierInterface
 }
 
-func NewRest(router *gin.Engine, db *gorm.DB, jwtAuth jwt.Interface, bcrypt user.BcryptInterface, storage user.StorageInterface, googleVerifier user.GoogleVerifierInterface) *Rest {
+func NewRest(router *gin.Engine, 
+  db *gorm.DB,
+  jwtAuth jwt.Interface,
+  bcrypt user.BcryptInterface,
+  storage user.StorageInterface,
+  googleVerifier user.GoogleVerifierInterface) *Rest {
   return &Rest{
     router: router,
     db: db,
@@ -30,19 +35,19 @@ func NewRest(router *gin.Engine, db *gorm.DB, jwtAuth jwt.Interface, bcrypt user
 }
 
 func (r *Rest) MountEndPoint() {
-  api := r.router.Group("api/v1")
-
+  api := r.router.Group("/api/v1")
+  
   userRepo := user.NewUserRepository(r.db)
   userUseCase := user.NewUserUseCase(userRepo, r.bcrypt, r.jwtAuth, r.storage, r.googleVerifier)
   userHandler := user.NewUserHandler(userUseCase)
-
+  
   authGroup := api.Group("/auth")
   {
     authGroup.POST("/register", userHandler.Register)
     authGroup.POST("/login", userHandler.Login)
     authGroup.POST("/google", userHandler.LoginWithGoogle)
   }
-
+  
   userGroup := api.Group("/user")
   userGroup.Use(middlewares.Authenticate(r.jwtAuth))
   {
@@ -50,6 +55,8 @@ func (r *Rest) MountEndPoint() {
     userGroup.PATCH("/profile", userHandler.UpdateProfile)
     userGroup.POST("/profile/photo", userHandler.UpdatePhotoProfile)
     userGroup.POST("/upgrade", userHandler.UpgradeToSeller)
+    userGroup.POST("/:id/follow", userHandler.FollowUsers)
+    userGroup.POST("/:id/unfollow", userHandler.UnfollowUser)
   }
 }
 
