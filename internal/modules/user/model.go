@@ -49,6 +49,11 @@ type UpdateProfileRequest struct {
 	Address          *string `json:"address"`
 }
 
+type UpdatePasswordRequest struct {
+	OldPassword *string `json:"old_password" binding:"required"`
+	NewPassword *string `json:"new_password" binding:"required,min=8"`
+}
+
 type PhotoUpdate struct {
 	UserID    uuid.UUID             `json:"-"`
 	PhotoLink string                `json:"-"`

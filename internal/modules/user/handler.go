@@ -205,7 +205,41 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
   })
 }
 
-func (h *UserHandler) UpdatePhotoProfile(ctx *gin.Context) {
+func (h *UserHandler) UpdatePassword(ctx *gin.Context) {
+  var req UpdatePasswordRequest
+  if err := ctx.ShouldBindJSON(&req); err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Data tidak valid",
+    })
+    return
+  }
+
+  userID, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "message": "Sesi anda tidak valid, silahkan login ulang",
+    })
+    return
+  }
+
+  err := h.useCase.UpdatePassword(ctx.Request.Context(), userID.(uuid.UUID), req)
+  if err != nil {
+    ctx.JSON(http.StatusInternalServerError, gin.H{
+      "status":  false,
+      "message": "Gagal memperbarui password" + err.Error(),
+    })
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status":  true,
+    "message": "Berhasil memperbarui password",
+  })
+}
+
+  func (h *UserHandler) UpdatePhotoProfile(ctx *gin.Context) {
   var req PhotoUpdate
 
   if err := ctx.ShouldBind(&req); err != nil {

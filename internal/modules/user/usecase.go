@@ -43,6 +43,7 @@ type IUserUseCase interface {
   GetProfileByUsername(ctx context.Context, username string) (*User, error)
   UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error
   Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error
+  UpdatePassword(ctx context.Context, userID uuid.UUID, req UpdatePasswordRequest) error
   UpdatePhotoProfile(param PhotoUpdate) (string, error)
   FollowUsers(ctx context.Context, param FollowParam) error
   UnfollowUser(ctx context.Context, param FollowParam) error
@@ -178,15 +179,51 @@ func (uc *UserUseCase) Update(ctx context.Context, userID uuid.UUID, req UpdateP
     updates["username"] = usernameVal
 	}
 	if req.PhoneNumber != nil {
-		updates["phone_number"] = req.PhoneNumber
+		updates["phone_number"] = *req.PhoneNumber
 	}
 	if req.Address != nil {
-		updates["address"] = req.Address
+		updates["address"] = *req.Address
 	}
 	if len(updates) == 0 {
 		return nil
 	}
+
+	updates["updated_at"] = time.Now()
+	
 	return uc.ur.UpdateUser(ctx, userID, updates)
+}
+
+func (uc *UserUseCase) UpdatePassword(ctx context.Context, userID uuid.UUID, req UpdatePasswordRequest) error {
+	user, err := uc.ur.GetByID(ctx, userID)
+	if err != nil {
+		return errors.New("gagal mengambil data user")
+	}
+
+	// Antisipasi jika kolom password di DB bernilai nil
+	if user.Password == nil {
+		return errors.New("akun ini belum memiliki password")
+	}
+
+	err = uc.bcrypt.CompareHashPassword(*user.Password, *req.OldPassword)
+	if err != nil {
+		return errors.New("password lama salah")
+	}
+
+	newPasswordHash, err := uc.bcrypt.GenerateHashPassword(*req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("gagal mengubah password: %w", err)
+	}
+
+	updates := map[string]interface{}{
+		"password": newPasswordHash,
+	}
+
+	err = uc.ur.UpdateUser(ctx, userID, updates)
+	if err != nil {
+		return fmt.Errorf("gagal memperbarui password: %w", err)
+	}
+
+	return nil
 }
 
 func (uc *UserUseCase) UpdatePhotoProfile(param PhotoUpdate) (string, error) {
