@@ -28,6 +28,12 @@ func (m *mockLoginUserRepository) UpdateUser(ctx context.Context, userID uuid.UU
 func (m *mockLoginUserRepository) UpdatePhoto(ctx context.Context, userID uuid.UUID, photoLink string) error {
 	return nil
 }
+func (m *mockLoginUserRepository) FollowUsers(ctx context.Context, followerID, followingID uuid.UUID) error {
+	return nil
+}
+func (m *mockLoginUserRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	return nil
+}
 
 type mockLoginBcrypt struct {
 	CompareHashPasswordFunc func(hashedPassword, password string) error

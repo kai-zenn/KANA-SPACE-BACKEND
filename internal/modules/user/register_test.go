@@ -15,6 +15,8 @@ type mockUserRepository struct {
 	GetByIDFunc              func(ctx context.Context, userID uuid.UUID) (*User, error)
 	UpdateUserFunc           func(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error
 	UpdatePhotoFunc          func(ctx context.Context, userID uuid.UUID, photoLink string) error
+	FollowUsersFunc          func(ctx context.Context, followerID, followingID uuid.UUID) error
+	UnfollowUserFunc         func(ctx context.Context, followerID, followingID uuid.UUID) error
 }
 
 func (m *mockUserRepository) CreateUser(ctx context.Context, user *User) error {
@@ -34,6 +36,18 @@ func (m *mockUserRepository) UpdateUser(ctx context.Context, userID uuid.UUID, u
 }
 func (m *mockUserRepository) UpdatePhoto(ctx context.Context, userID uuid.UUID, photoLink string) error {
 	return m.UpdatePhotoFunc(ctx, userID, photoLink)
+}
+func (m *mockUserRepository) FollowUsers(ctx context.Context, followerID, followingID uuid.UUID) error {
+  if m.FollowUsersFunc != nil {
+		return m.FollowUsersFunc(ctx, followerID, followingID)
+	}
+	return nil
+}
+func (m *mockUserRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+  if m.UnfollowUserFunc != nil {
+		return m.UnfollowUserFunc(ctx, followerID, followingID)
+	}
+	return nil
 }
 
 type mockBcrypt struct {

@@ -14,6 +14,8 @@ type IUserRepository interface {
   GetByID(ctx context.Context, userID uuid.UUID) (*User, error)
   UpdateUser(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error
   UpdatePhoto(ctx context.Context, userID uuid.UUID, photoLink string) error
+  FollowUsers(ctx context.Context, followerID, followingID uuid.UUID) error
+  UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error
 }
 
 type UserRepository struct {
@@ -78,4 +80,34 @@ func (ur *UserRepository) UpdatePhoto(ctx context.Context, userID uuid.UUID, pho
   	return err
   }
   return nil
+}
+
+func (ur *UserRepository) FollowUsers(ctx context.Context, followerID, followingID uuid.UUID) error {
+  var following User
+  var follower User
+  
+  err := ur.db.WithContext(ctx).First(&following, "id = ?", followingID).Error
+  if err != nil {
+  	return err
+  }
+  err = ur.db.WithContext(ctx).First(&follower, "id = ?", followerID).Error
+  if err != nil {
+  	return err
+  }
+  
+  return ur.db.WithContext(ctx).Model(&follower).Association("Following").Append(&following)
+}
+
+func (ur *UserRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+  var following User
+  var follower User
+  
+  if err := ur.db.WithContext(ctx).First(&following, "id = ?", followingID).Error; err != nil {
+    return err
+  }
+  if err := ur.db.WithContext(ctx).First(&follower, "id = ?", followerID).Error; err != nil {
+    return err
+  }
+  
+  return ur.db.WithContext(ctx).Model(&follower).Association("Following").Delete(&following)
 }

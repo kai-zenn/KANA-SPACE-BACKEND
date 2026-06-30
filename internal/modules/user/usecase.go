@@ -44,6 +44,8 @@ type IUserUseCase interface {
   UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error
   Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error
   UpdatePhotoProfile(param PhotoUpdate) (string, error)
+  FollowUsers(ctx context.Context, param FollowParam) error
+  UnfollowUser(ctx context.Context, param FollowParam) error
 }
 
 type UserUseCase struct {
@@ -69,6 +71,11 @@ func NewUserUseCase(
 		googleVerifier: googleVerifier,
 	}
 }
+
+var (
+  ErrFollowSelf = errors.New("Tidak dapat mem-follow diri sendiri")
+  ErrUserNotFound = errors.New("User yang diikuti tidak ditemukan")
+)
 
 func (uc *UserUseCase) Register(ctx context.Context, req UserRegisterRequest) error {
   existingUser, _ := uc.ur.GetProfileByUsername(ctx, req.Username)
@@ -252,4 +259,40 @@ func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthReques
     return nil, fmt.Errorf("Gagal menghasilkan token: %w", err)
   }
   return &UserLoginResponse{Token: token}, nil
+}
+
+func (uc *UserUseCase) FollowUsers(ctx context.Context, param FollowParam) error {
+  if param.FollowerID == param.FollowingID {
+    return ErrFollowSelf
+  }
+  
+  _, err := uc.ur.GetProfile(ctx, UserParam{ID: param.FollowingID})
+  if err != nil {
+    return ErrUserNotFound
+  }
+  
+  err = uc.ur.FollowUsers(ctx, param.FollowerID, param.FollowingID)
+  if err != nil {
+    return fmt.Errorf("Gagal mem-follow user: %w", err)
+  }
+  
+  return nil
+}
+
+func (uc *UserUseCase) UnfollowUser(ctx context.Context, param FollowParam) error {
+  if param.FollowerID == param.FollowingID {
+    return ErrFollowSelf
+  }
+
+  _, err := uc.ur.GetProfile(ctx, UserParam{ID: param.FollowingID})
+  if err != nil {
+    return ErrUserNotFound
+  }
+
+  err = uc.ur.UnfollowUser(ctx, param.FollowerID, param.FollowingID)
+  if err != nil {
+    return fmt.Errorf("Gagal mem-unfollow user: %w", err)
+  }
+  
+  return nil
 }
