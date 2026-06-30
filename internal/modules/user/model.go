@@ -60,3 +60,8 @@ type UpgradeSellerRequest struct {
     ShopName string    `json:"shop_name" binding:"required"`
     Address  string    `json:"address" binding:"required"`
 }
+
+type FollowParam struct {
+  FollowerID uuid.UUID `json:"follower_id" binding:"required"`
+  FollowingID uuid.UUID `json:"following_id" binding:"required"`
+}
