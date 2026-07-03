@@ -22,7 +22,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
   if err != nil {
     ctx.JSON(http.StatusBadRequest, gin.H{
       "status":  false,
-      "message": "Format data tidak valid" + err.Error(),
+      "message": "Format data tidak valid, " + err.Error(),
     })
     return
   } 
@@ -30,7 +30,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
   if err = h.useCase.Register(ctx.Request.Context(), req); err != nil {
     ctx.JSON(http.StatusUnprocessableEntity, gin.H{
       "status":  false,
-      "message": "Gagal mendaftar pengguna" + err.Error(),
+      "message": "Gagal mendaftar pengguna, " + err.Error(),
     })
     return
   }
@@ -48,7 +48,7 @@ func (h *UserHandler) Login(ctx *gin.Context){
   if err != nil {
     ctx.JSON(http.StatusBadRequest, gin.H{
       "status": false,
-      "message": "Username Wajib diisi",
+      "message": "Username Wajib diisi, ",
     })
     return 
   }
@@ -57,7 +57,7 @@ func (h *UserHandler) Login(ctx *gin.Context){
   if err != nil {
     ctx.JSON(http.StatusInternalServerError, gin.H{
       "status": false,
-      "message": "Gagal login" + err.Error(),
+      "message": "Gagal login, " + err.Error(),
     })
     return
   }
@@ -76,7 +76,7 @@ func (h *UserHandler) LoginWithGoogle(ctx *gin.Context) {
   if err != nil {
     ctx.JSON(http.StatusBadRequest, gin.H{
       "status":  false,
-      "message": "ID Token Google wajib dikirim" + err.Error(),
+      "message": "ID Token Google wajib dikirim, " + err.Error(),
     })
     return
   }
@@ -346,13 +346,13 @@ func (h *UserHandler) UnfollowUser(ctx *gin.Context) {
   if err := h.useCase.UnfollowUser(ctx.Request.Context(), req); err != nil {
     ctx.JSON(http.StatusInternalServerError, gin.H{
       "status":  false,
-      "message": "Gagal membatalkan pengikut",
+      "message": "Gagal berhenti mengikuti",
     })
     return
   }
 
   ctx.JSON(http.StatusOK, gin.H{
     "status":  true,
-    "message": "Berhasil membatalkan pengikut",
+    "message": "Berhasil berhenti mengikuti",
   })
 }

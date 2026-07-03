@@ -62,13 +62,13 @@ func main() {
   if daysStr, found := strings.CutSuffix(conf.JWTExpiry, "d"); found {
   	days, err := strconv.Atoi(daysStr)
   	if err != nil {
-  		log.Fatalf("Angka JWT_EXPIRY di .env tidak valid: %v", err)
+  		log.Fatalf("Angka JWT_EXPIRY di .env tidak valid: %v ", err)
   	}
   	expiryTime = time.Duration(days) * 24 * time.Hour
 	} else {
 		expiryTime, err = time.ParseDuration(conf.JWTExpiry)
 		if err != nil {
-			log.Fatalf("Format JWT_EXPIRY tidak valid: %v", err)
+			log.Fatalf("Format JWT_EXPIRY tidak valid: %v ", err)
 		}
 	}
  

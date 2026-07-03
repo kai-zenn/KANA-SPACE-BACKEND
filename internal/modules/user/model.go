@@ -19,7 +19,8 @@ type UserRegisterRequest struct {
   PhoneNumber string `json:"phone_number" binding:"required,numeric,min=11"`
   Email string `json:"email" binding:"required,email"`
   Password string `json:"password" binding:"required,min=8"`
-  Role string `json:"role" binding:"required,oneof=user seller"`
+  Role string `json:"-"`
+  // Role string `json:"-" binding:"required,oneof=user seller"`
 }
 
 type UserLoginRequest struct {
