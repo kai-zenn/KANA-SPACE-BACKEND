@@ -3,7 +3,9 @@ package rest
 import (
 	"KANA-SPACE-BACKEND/internal/middlewares"
 	"KANA-SPACE-BACKEND/internal/modules/user"
+	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
+	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,16 +15,16 @@ type Rest struct {
   router *gin.Engine
   db     *gorm.DB
   jwtAuth jwt.Interface
-  bcrypt  user.BcryptInterface
-  storage user.StorageInterface
+  bcrypt  bcrypt.Interface
+  storage storage.Interface
   googleVerifier user.GoogleVerifierInterface
 }
 
 func NewRest(router *gin.Engine, 
   db *gorm.DB,
   jwtAuth jwt.Interface,
-  bcrypt user.BcryptInterface,
-  storage user.StorageInterface,
+  bcrypt bcrypt.Interface,
+  storage storage.Interface,
   googleVerifier user.GoogleVerifierInterface) *Rest {
   return &Rest{
     router: router,

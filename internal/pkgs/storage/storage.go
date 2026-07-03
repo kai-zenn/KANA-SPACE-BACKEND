@@ -15,7 +15,7 @@ import (
 
 
 
-type StorageService interface {
+type Interface interface {
   UploadPhotoProfile(ctx context.Context, id uuid.UUID, file *multipart.FileHeader) (string, error)
 	DeletePhotoProfile(ctx context.Context, fileURL string) error
 }
@@ -24,7 +24,7 @@ type LocalStorage struct {
   uploadDir string
 }
 
-func NewLocalStorage(uploadDir string) StorageService {
+func NewLocalStorage(uploadDir string) Interface {
   if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
     _ = os.MkdirAll(uploadDir, os.ModePerm)
   }

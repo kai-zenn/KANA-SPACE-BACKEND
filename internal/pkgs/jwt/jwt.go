@@ -41,7 +41,7 @@ func (j *JsonWebToken) GenerateToken(userId uuid.UUID, role string) (string, err
     },
   }
 
-  token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+  token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
   return token.SignedString(j.SecretKey)
 }
 
