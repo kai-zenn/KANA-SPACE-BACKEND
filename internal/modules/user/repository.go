@@ -105,6 +105,7 @@ func (ur *UserRepository) UnfollowUser(ctx context.Context, followerID, followin
   if err := ur.db.WithContext(ctx).First(&following, "id = ?", followingID).Error; err != nil {
     return err
   }
+  
   if err := ur.db.WithContext(ctx).First(&follower, "id = ?", followerID).Error; err != nil {
     return err
   }
