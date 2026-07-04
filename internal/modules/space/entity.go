@@ -29,7 +29,7 @@ type Post struct {
 	ID     uuid.UUID `gorm:"primary_key"`
 	UserID uuid.UUID `gorm:"type:uuid;not null"`
 	Content string `gorm:"type:text;not null"`
-	Tag     string `gorm:"type:varchar(30);not null"`
+	Tag     string `gorm:"type:varchar(30);not null;index:idx_tag_created"`
 	PhotoURLs pgtype.FlatArray[string] `gorm:"type:text[]"`
 	Latitude  *float64
 	Longitude *float64
@@ -41,7 +41,7 @@ type Post struct {
 	CommentCount int `gorm:"not null;default:0"`
 	User     user.User `gorm:"foreignKey:UserID;references:ID"`
 	Comments []Comment `gorm:"foreignKey:PostID"`
-	CreatedAt time.Time
+	CreatedAt time.Time `gorm:"index:idx_tag_created,sort:desc"`
 	UpdatedAt time.Time
 }
 
