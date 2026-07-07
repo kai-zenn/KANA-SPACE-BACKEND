@@ -8,9 +8,10 @@ import (
 )
 
 type CreatePostRequest struct {
+  ID        uuid.UUID               `json:"-"`
 	UserID    uuid.UUID               `json:"-"`
 	Content   string                  `form:"content" binding:"required"`
-	Tag       string                  `form:"tag" binding:"required,oneof=CariMaterial LapakCircular PajangKarya TipsTrick"`
+	Tag       string                  `form:"tag" binding:"required,oneof=CariMaterial PajangKarya TipsTrick DapurHijau Diskusi KabarKomunitas Lifestyle"`
 	Latitude  *float64                `form:"latitude"`
 	Longitude *float64                `form:"longitude"`
 	Images    []*multipart.FileHeader `form:"images" binding:"max=4"`
@@ -24,7 +25,7 @@ type PostAuthor struct {
 
 type PostResponse struct {
 	ID            uuid.UUID  `json:"-"`
-	User          PostAuthor `json:"user"`
+	UserID        PostAuthor `json:"user"`
 	Content       string     `json:"content"`
 	Tag           string     `json:"tag"`
 	PhotoURLs     []string   `json:"photo_urls"`
