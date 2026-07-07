@@ -46,7 +46,7 @@ func (pr *PostRepository) CreatePost(ctx context.Context, post *Post) error {
 func (pr *PostRepository) FindById(ctx context.Context, postID uuid.UUID) (*Post, error) {
   var post Post
 
-  err := pr.db.WithContext(ctx).Where("id = ?", postID).First(&post).Error
+  err := pr.db.WithContext(ctx).Where("id = ?", postID).Preload("Images").First(&post).Error
   if err != nil {
     return nil, err
   }
@@ -57,14 +57,14 @@ func (pr *PostRepository) FindById(ctx context.Context, postID uuid.UUID) (*Post
 func (pr *PostRepository) FindFeed(ctx context.Context, tag string, cursor time.Time, limit int) ([]Post, error) {
   var post []Post
 
-  db := pr.db.WithContext(ctx).Order("created_at desc").Limit(limit).Preload("User")
+  db := pr.db.WithContext(ctx).Order("created_at desc").Limit(limit).Preload("User").Preload("Images")
 
   if tag != "" {
-    db = pr.db.WithContext(ctx).Where("tag = ?", tag)
+    db = db.Where("tag = ?", tag)
   }
 
   if !cursor.IsZero() {
-    db = pr.db.WithContext(ctx).Where("created_at < ?", cursor)
+    db = db.Where("created_at < ?", cursor)
   }
 
   err := db.Find(&post).Error
