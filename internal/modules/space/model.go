@@ -11,21 +11,21 @@ type CreatePostRequest struct {
   ID        uuid.UUID               `json:"-"`
 	UserID    uuid.UUID               `json:"-"`
 	Content   string                  `form:"content" binding:"required"`
-	Tag       string                  `form:"tag" binding:"required,oneof=CariMaterial PajangKarya Tips&Trick DapurHijau Diskusi KabarKomunitas Lifestyle"`
+	Tag       string                  `form:"tag" binding:"required,oneof=CariMaterial PajangKarya TipsTrick DapurHijau Diskusi KabarKomunitas Lifestyle"`
 	Latitude  *float64                `form:"latitude"`
 	Longitude *float64                `form:"longitude"`
 	Images    []*multipart.FileHeader `form:"images" binding:"max=4"`
 }
 
 type PostAuthor struct {
-	ID               uuid.UUID `json:"-"`
+	ID               uuid.UUID `json:"id"`
 	Username         string    `json:"username"`
 	ProfilePhotoLink string    `json:"profile_photo_link"`
 }
 
 type PostResponse struct {
 	ID            uuid.UUID  `json:"id"`
-	UserID        PostAuthor `json:"user"`
+	User          PostAuthor `json:"user"`
 	Content       string     `json:"content"`
 	Tag           string     `json:"tag"`
 	PhotoURLs     []string   `json:"photo_urls"`

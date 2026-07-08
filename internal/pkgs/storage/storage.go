@@ -108,7 +108,9 @@ func (s *LocalStorage) DeletePostImages(ctx context.Context, imgURLs []string) e
 	for _, imgURL := range imgURLs {
 		filePath := strings.TrimPrefix(imgURL, "/")
 		if _, err := os.Stat(filePath); err == nil {
-			return os.Remove(filePath)
+			if err := os.Remove(filePath); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
