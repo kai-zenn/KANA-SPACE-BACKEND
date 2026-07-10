@@ -58,7 +58,6 @@ type Comment struct {
 	// ParentCommentID *uuid.UUID `gorm:"index"` // nullable, buat nested reply nanti
 	Content string `gorm:"type:text;not null"`
 	CreatedAt time.Time
-	UpdatedAt time.Time
 	User user.User `gorm:"foreignKey:UserID;references:ID"`
 }
 

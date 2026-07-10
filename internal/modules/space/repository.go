@@ -21,6 +21,7 @@ type IPostRepository interface {
 type ICommentRepository interface {
 	CreateComment(ctx context.Context, comment *Comment) error
 	FindByPostID(ctx context.Context, postID uuid.UUID, cursor time.Time, limit int) ([]Comment, error)
+	FindByID(ctx context.Context, commentID uuid.UUID) (*Comment, error)
 	DeleteComment(ctx context.Context, commentID uuid.UUID) error
 }
 
@@ -147,6 +148,15 @@ func (cr *CommentRepository) FindByPostID(ctx context.Context,
    }
 
    return comments, nil
+}
+
+func (cr *CommentRepository) FindByID(ctx context.Context, commentID uuid.UUID) (*Comment, error) {
+  var comment Comment
+  err := cr.db.WithContext(ctx).Where("id = ?", commentID).First(&comment).Error
+  if err != nil {
+    return nil, err
+  }
+  return &comment, nil
 }
 
 func (cr *CommentRepository) DeleteComment(ctx context.Context, commentID uuid.UUID) error {
