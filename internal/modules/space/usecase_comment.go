@@ -11,7 +11,7 @@ import (
 
 type ICommentUseCase interface {
   CreateComment(ctx context.Context, req CreateCommentRequest) (*CommentResponse, error)
-  GetComments(ctx context.Context, postID uuid.UUID, cursor string, limit int) (*CommentsResponse, error)
+  GetComments(ctx context.Context, postID uuid.UUID, param CommentQueryParam) (*CommentsResponse, error)
   DeleteComment(ctx context.Context, commentID, requesterID uuid.UUID, requestRole string) error
 }
 
@@ -28,14 +28,14 @@ func NewCommentUseCase(cr ICommentRepository, pr IPostRepository) ICommentUseCas
 }
 
 func (cu *CommentUseCase) CreateComment(ctx context.Context, req CreateCommentRequest) (*CommentResponse, error) {
-  comment := Comment{
+  comment := &Comment{
     ID: uuid.New(),
     PostID: req.PostID,
     UserID: req.UserID,
     Content: req.Content,
   }
 
-  err := cu.cr.CreateComment(ctx, &comment)
+  err := cu.cr.CreateComment(ctx, comment)
   if err != nil {
     return nil, err
   }
@@ -50,38 +50,44 @@ func (cu *CommentUseCase) CreateComment(ctx context.Context, req CreateCommentRe
   }, nil
 }
 
-func (cu *CommentUseCase) GetComments(ctx context.Context, postID uuid.UUID, cursor string, limit int) (*CommentsResponse, error) {
-  if limit <= 0 || limit > 10 {
-    limit = 5
+func (cu *CommentUseCase) GetComments(ctx context.Context, postID uuid.UUID, param CommentQueryParam) (*CommentsResponse, error) {
+  if param.Limit <= 0 || param.Limit > 10 {
+    param.Limit = 5
   }
 
   var parsedCursor time.Time
-  if cursor != "" {
+  if param.Cursor != "" {
     var err error
-    parsedCursor, err = time.Parse(time.RFC3339, cursor)
+    parsedCursor, err = time.Parse(time.RFC3339, param.Cursor)
     if err != nil {
       return nil, err
     }
   }
   
-  comments, err := cu.cr.FindByPostID(ctx, postID, parsedCursor, limit)
+  comments, err := cu.cr.FindByPostID(ctx, postID, parsedCursor, param.Limit)
   if err != nil {
     return nil, err
   }
 
-  var commentResponses CommentsResponse
-  for _, c := range comments {
-    commentResponses.Comments = append(commentResponses.Comments, CommentResponse{
+  responses := make([]CommentResponse, len(comments))
+  for i, c := range comments {
+    responses[i] = CommentResponse{
       ID: c.ID,
       User: ToPostAuthor(c.User),
       Content: c.Content,
       CreatedAt: c.CreatedAt,
-    })
+    }
   }
-  if len(comments) == limit {
-    commentResponses.NextCursor = &comments[len(comments)-1].CreatedAt
+
+  var nextCursor *time.Time
+  if len(comments) == param.Limit {
+    lastTime := &comments[len(comments)-1].CreatedAt
+    nextCursor = lastTime
   }
-  return &commentResponses, nil
+  return &CommentsResponse{
+    Comments: responses,
+    NextCursor: nextCursor,
+  }, nil
 }
 
 func (cu *CommentUseCase) DeleteComment(ctx context.Context, commentID, requesterID uuid.UUID, requestRole string) error {

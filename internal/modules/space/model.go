@@ -74,3 +74,8 @@ type CommentsResponse struct {
 	Comments   []CommentResponse `json:"comments"`
 	NextCursor *time.Time        `json:"next_cursor,omitempty"`
 }
+
+type CommentQueryParam struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit"`
+}
