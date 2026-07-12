@@ -8,7 +8,7 @@ import (
 
 type ILikeUseCase interface {
   LikePost(ctx context.Context, req LikeParam) (*LikeResponse, error)
-  UnlikePost(ctx context.Context, postID uuid.UUID, userID uuid.UUID) (*LikeResponse, error)
+  UnlikePost(ctx context.Context, req LikeParam) (*LikeResponse, error)
 }
 
 type LikeUseCase struct {
@@ -26,7 +26,7 @@ func NewLikeUseCase(lr LikeRepository, pr PostRepository) *LikeUseCase {
 func (lu *LikeUseCase) LikePost(ctx context.Context, req LikeParam) (*LikeResponse, error) {
   exists, _ := lu.lr.Exists(ctx, req.PostID, req.UserID)
   if exists {
-    post, _ := lu.pr.FindById(ctx, req.PostID)
+    post, _ := lu.pr.FindByID(ctx, req.PostID)
     return &LikeResponse{
       LikeCount: post.LikeCount,
       IsLiked:   true,
@@ -43,7 +43,7 @@ func (lu *LikeUseCase) LikePost(ctx context.Context, req LikeParam) (*LikeRespon
     return nil, err
   }
 
-  post, _ := lu.pr.FindById(ctx, req.PostID)
+  post, _ := lu.pr.FindByID(ctx, req.PostID)
   return &LikeResponse{
     LikeCount: post.LikeCount,
     IsLiked:   true,
@@ -53,7 +53,7 @@ func (lu *LikeUseCase) LikePost(ctx context.Context, req LikeParam) (*LikeRespon
 func (lu *LikeUseCase) UnlikePost(ctx context.Context, req LikeParam) (*LikeResponse, error) {
   exists, _ := lu.lr.Exists(ctx, req.PostID, req.UserID)
   if !exists {
-    post, _ := lu.pr.FindById(ctx, req.PostID)
+    post, _ := lu.pr.FindByID(ctx, req.PostID)
     return &LikeResponse{
       LikeCount: post.LikeCount,
       IsLiked:   false,
@@ -70,7 +70,7 @@ func (lu *LikeUseCase) UnlikePost(ctx context.Context, req LikeParam) (*LikeResp
     return nil, err
   }
 
-  post, _ := lu.pr.FindById(ctx, req.PostID)
+  post, _ := lu.pr.FindByID(ctx, req.PostID)
   return &LikeResponse{
     LikeCount: post.LikeCount,
     IsLiked:   false,

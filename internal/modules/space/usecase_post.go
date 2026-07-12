@@ -40,7 +40,7 @@ func ToPostAuthor(user user.User) PostAuthor {
 	}
 }
 
-func NewPostUserCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp NLPClientInterface, ur user.IUserRepository, storage storage.Interface) IPostUseCase {
+func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp NLPClientInterface, ur user.IUserRepository, storage storage.Interface) IPostUseCase {
   return &PostUseCase{
     pr: pr,
     cr: cr,

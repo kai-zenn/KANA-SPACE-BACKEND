@@ -14,7 +14,7 @@ type IPostRepository interface {
 	FindFeed(ctx context.Context, tag string, cursor time.Time, limit int) ([]Post, error)
 	UpdateCommentCount(ctx context.Context, postID uuid.UUID, delta int) error
 	UpdateLikeCount(ctx context.Context, postID uuid.UUID, delta int) error
-	UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error
+	// UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error
 	DeletePost(ctx context.Context, postID uuid.UUID) error
 }
 
@@ -44,7 +44,7 @@ func (pr *PostRepository) CreatePost(ctx context.Context, post *Post) error {
   return pr.db.WithContext(ctx).Create(post).Error
 }
 
-func (pr *PostRepository) FindById(ctx context.Context, postID uuid.UUID) (*Post, error) {
+func (pr *PostRepository) FindByID(ctx context.Context, postID uuid.UUID) (*Post, error) {
   var post Post
 
   err := pr.db.WithContext(ctx).Where("id = ?", postID).Preload("Images").Preload("User").First(&post).Error
