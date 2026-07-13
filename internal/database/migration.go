@@ -11,6 +11,7 @@ func Migrate(db *gorm.DB) error {
   return db.AutoMigrate(
     &user.User{},
     &space.Post{},
+    &space.PostImage{},
     &space.Comment{},
     &space.PostLike{},
   )
