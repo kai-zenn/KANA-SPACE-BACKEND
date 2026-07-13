@@ -12,11 +12,11 @@ type ILikeUseCase interface {
 }
 
 type LikeUseCase struct {
-  pr PostRepository
-  lr LikeRepository
+  pr IPostRepository
+  lr ILikeRepository
 }
 
-func NewLikeUseCase(lr LikeRepository, pr PostRepository) *LikeUseCase {
+func NewLikeUseCase(lr ILikeRepository, pr IPostRepository) *LikeUseCase {
   return &LikeUseCase{
     lr: lr,
     pr: pr,

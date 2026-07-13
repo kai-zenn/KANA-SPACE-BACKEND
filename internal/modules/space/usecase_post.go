@@ -52,6 +52,10 @@ func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepositor
 }
 
 func (pu *PostUseCase) NewPost(ctx context.Context, req CreatePostRequest) (*PostResponse, error) {
+  if req.Tag == "CariMaterial" && (req.Latitude == nil || req.Longitude == nil) {
+		return nil, errors.New("lokasi wajib diisi untuk tag CariMaterial")
+	}
+	
   newPhotoUrl, err := pu.storage.UploadPostImages(ctx, req.Images)
   if err != nil {
     return nil, err
@@ -91,7 +95,7 @@ func (pu *PostUseCase) NewPost(ctx context.Context, req CreatePostRequest) (*Pos
     Images:    postImgs,
   }
 
-  if req.Tag == "TagCariMaterial" {
+  if req.Tag == "CariMaterial" {
     status := "RequestStatusActive"
     post.RequestStatus = &status
   }
