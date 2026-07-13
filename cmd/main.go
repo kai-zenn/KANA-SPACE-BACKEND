@@ -79,7 +79,7 @@ func main() {
  var bcryptServic = bcrypt.NewCryptoBcrypt()
 
  router := gin.Default()
- app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil)
+ app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nil)
  app.MountEndPoint()
  
  fmt.Println("\n  ➜  Local: http://localhost:9090/")

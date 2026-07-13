@@ -268,7 +268,7 @@ func (h *UserHandler) UpdatePassword(ctx *gin.Context) {
   if err != nil {
     ctx.JSON(http.StatusInternalServerError, gin.H{
       "status":  false,
-      "message": "Gagal memperbarui password" + err.Error(),
+      "message": "Gagal memperbarui password, " + err.Error(),
     })
     return
   }
