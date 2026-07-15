@@ -109,7 +109,8 @@ func (pr *PostRepository) UpdateLikeCount(ctx context.Context, postID uuid.UUID,
 func (pr *PostRepository) DeletePost(ctx context.Context, postID uuid.UUID) error {
   err := pr.db.
     WithContext(ctx).
-    Delete(&Post{}, "id = ?", postID).
+    Where("id = ?", postID).
+    Delete(&Post{}).
     Error
   if err != nil {
     return err
@@ -127,20 +128,25 @@ func NewCommentRepository(db *gorm.DB) *CommentRepository {
 }
 
 func (cr *CommentRepository) CreateComment(ctx context.Context, comment *Comment) error {
-  return cr.db.WithContext(ctx).Create(comment).Error
+  err := cr.db.WithContext(ctx).Create(comment).Error
+	if err != nil {
+		return err
+	}
+	
+  return cr.db.WithContext(ctx).Preload("User").First(comment, comment.ID).Error
 }
 
 func (cr *CommentRepository) FindByPostID(ctx context.Context, 
   postID uuid.UUID, 
   cursor time.Time, 
   limit int) ([]Comment, error) {
-    var comments []Comment
+  var comments []Comment
 
-    db := cr.db.WithContext(ctx).Where("post_id = ?", postID).Preload("Images").Preload("User").Order("created_at DESC").Limit(limit)
+  db := cr.db.WithContext(ctx).Where("post_id = ?", postID).Preload("User").Order("created_at DESC").Limit(limit)
    
-   if !cursor.IsZero(){
+  if !cursor.IsZero(){
      db = db.Where("created_at < ?", cursor)
-   } 
+  } 
 
    err := db.Find(&comments).Error
    if err != nil {

@@ -40,7 +40,7 @@ type Post struct {
 	LikeCount    int `gorm:"not null;default:0"`
 	CommentCount int `gorm:"not null;default:0"`
 	User     user.User `gorm:"foreignKey:UserID;references:ID"`
-	Comments []Comment `gorm:"foreignKey:PostID"`
+	Comments []Comment `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 	CreatedAt time.Time `gorm:"index:idx_tag_created,sort:desc"`
 	UpdatedAt time.Time
 }
@@ -58,7 +58,8 @@ type Comment struct {
 	// ParentCommentID *uuid.UUID `gorm:"index"` // nullable, buat nested reply nanti
 	Content string `gorm:"type:text;not null"`
 	CreatedAt time.Time
-	User user.User `gorm:"foreignKey:UserID;references:ID"`
+	Post      Post      `gorm:"foreignKey:PostID;references:ID;constraint:OnDelete:CASCADE;"`
+	User      user.User `gorm:"foreignKey:UserID;references:ID"`
 }
 
 type PostLike struct {
