@@ -89,7 +89,7 @@ func (r *Rest) MountEndPoint() {
 		spaceGroup.DELETE("/posts/:id", spaceHandler.DeletePost)
 
 		spaceGroup.POST("/posts/:id/like", spaceHandler.LikePost)     
-		spaceGroup.DELETE("/posts/:id/like", spaceHandler.UnlikePost) 
+		spaceGroup.POST("/posts/:id/unlike", spaceHandler.UnlikePost) 
 
 		spaceGroup.POST("/posts/:id/comments", spaceHandler.CreateComment)    
 		spaceGroup.GET("/posts/:id/comments", spaceHandler.GetComments)  
