@@ -217,7 +217,6 @@ func (h *Handler) UnlikePost(ctx *gin.Context) {
   })
 }
 
-
 // -- Comment Handler / Controller
 func (h *Handler) CreateComment(ctx *gin.Context) {
   userIDVal, _ := ctx.Get("user_id")
