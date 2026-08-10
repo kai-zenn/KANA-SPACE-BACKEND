@@ -40,7 +40,7 @@ func (cr *CategoryRepository) FindAll(ctx context.Context) ([]Category, error) {
     return nil, err
   }
 
-  return nil, err
+  return category, err
 }
 
 func (cr *CategoryRepository) FindByID(ctx context.Context, categoryID uuid.UUID) (*Category, error) {

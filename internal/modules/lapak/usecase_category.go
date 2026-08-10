@@ -29,7 +29,7 @@ func sameParent(a, b *uuid.UUID) bool {
 }
  
 func buildCategoryTree(all []Category, parentID *uuid.UUID) []CategoryResponse {
-  var result []CategoryResponse
+  result := []CategoryResponse{}
   for _, cat := range all {
     if sameParent(cat.ParentID, parentID) {
       node := ToCategoryResponse(cat)
