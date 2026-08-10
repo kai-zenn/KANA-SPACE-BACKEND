@@ -19,7 +19,7 @@ type IProductRepository interface {
 	FindByID(ctx context.Context, productID uuid.UUID) (*Product, error)
 	FindList(ctx context.Context, categoryIDs []uuid.UUID, minPrice, maxPrice *int, cursor time.Time, limit int) ([]Product, error)
 	UpdateProduct(ctx context.Context, product *Product) error
-	UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error
+	// UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error
 	DeleteProduct(ctx context.Context, productID uuid.UUID) error
 }
 
@@ -53,9 +53,14 @@ func (cr *CategoryRepository) FindByID(ctx context.Context, categoryID uuid.UUID
     return &category, nil
 }
 
-// func (cr *CategoryRepository) FindIDsByBranch(ctx context.Context, branch string) ([]uuid.UUID, error) {
-  
-// }
+func (cr *CategoryRepository) FindIDsByBranch(ctx context.Context, branch string) ([]uuid.UUID, error) {
+    var categoryIDs []uuid.UUID
+    err := cr.db.WithContext(ctx).Where("branch = ?", branch).Pluck("id", &categoryIDs).Error
+    if err != nil {
+      return nil, err
+    }
+    return categoryIDs, nil
+}
 
 
 // == Product Repository ==
