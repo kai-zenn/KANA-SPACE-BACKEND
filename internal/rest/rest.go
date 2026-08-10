@@ -97,7 +97,7 @@ func (r *Rest) MountEndPoint() {
 		spaceGroup.DELETE("/posts/comments/:comment_id", spaceHandler.DeleteComment) 
 	}
 
-	// -- Product Module
+	// -- Lapak Module
 	lapakProductR := lapak.NewProductRepository(r.db)
 	lapakCategoryR := lapak.NewCategoryRepository(r.db)
 	
@@ -106,11 +106,13 @@ func (r *Rest) MountEndPoint() {
 	productHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase)
 
 	productGroup := api.Group("/products")
+	productGroup.GET("/", productHandler.GetProductList)
+	productGroup.GET("/:id", productHandler.GetProductByID)
+	productGroup.GET("/categories", productHandler.GetCategories)
+	
 	productGroup.Use(middlewares.Authenticate(r.jwtAuth))
 	{
 		productGroup.POST("/", productHandler.CreateProduct)
-		productGroup.GET("/", productHandler.GetProductList)
-		productGroup.GET("/:id", productHandler.GetProductByID)
 		productGroup.PUT("/:id", productHandler.UpdateProduct)
 		productGroup.DELETE("/:id", productHandler.DeleteProduct)
 	}
