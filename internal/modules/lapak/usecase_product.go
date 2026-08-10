@@ -207,7 +207,7 @@ func (pu *ProductUseCase) GetProductList(ctx context.Context, param ProductListQ
      var err error
      cursor, err = time.Parse(time.RFC3339, param.Cursor)
      if err != nil {
-       return nil, err
+       return nil, errors.New("format cursor tidak valid, gunakan format RFC3339")
      }
   }
 
