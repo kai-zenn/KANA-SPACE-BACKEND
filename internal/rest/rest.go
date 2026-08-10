@@ -2,6 +2,7 @@ package rest
 
 import (
 	"KANA-SPACE-BACKEND/internal/middlewares"
+	"KANA-SPACE-BACKEND/internal/modules/lapak"
 	"KANA-SPACE-BACKEND/internal/modules/space"
 	"KANA-SPACE-BACKEND/internal/modules/user"
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
@@ -94,6 +95,24 @@ func (r *Rest) MountEndPoint() {
 		spaceGroup.POST("/posts/:id/comments", spaceHandler.CreateComment)    
 		spaceGroup.GET("/posts/:id/comments", spaceHandler.GetComments)  
 		spaceGroup.DELETE("/posts/comments/:comment_id", spaceHandler.DeleteComment) 
+	}
+
+	// -- Product Module
+	lapakProductR := lapak.NewProductRepository(r.db)
+	lapakCategoryR := lapak.NewCategoryRepository(r.db)
+	
+	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
+	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
+	productHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase)
+
+	productGroup := api.Group("/products")
+	productGroup.Use(middlewares.Authenticate(r.jwtAuth))
+	{
+		productGroup.POST("/", productHandler.CreateProduct)
+		productGroup.GET("/", productHandler.GetProductList)
+		productGroup.GET("/:id", productHandler.GetProductByID)
+		productGroup.PUT("/:id", productHandler.UpdateProduct)
+		productGroup.DELETE("/:id", productHandler.DeleteProduct)
 	}
 } 
 

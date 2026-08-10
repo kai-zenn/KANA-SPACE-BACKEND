@@ -73,11 +73,17 @@ func (h *handler) GetProductList(ctx *gin.Context) {
   // userID, _ := userIDVal.(uuid.UUID)
 
   var param ProductListQueryParam
-  ctx.ShouldBindQuery(&param)
+  if err := ctx.ShouldBindQuery(&param); err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Gagal mengambil Produk" + err.Error(),
+    })
+    return
+  }
 
   res, err := h.productUsecase.GetProductList(ctx.Request.Context(), param)
   if err != nil {
-    ctx.JSON(http.StatusInternalServerError, gin.H{
+    ctx.JSON(http.StatusBadRequest, gin.H{
       "status": false,
       "message": "Gagal mengambil Produk",
     })
@@ -86,8 +92,8 @@ func (h *handler) GetProductList(ctx *gin.Context) {
 
   ctx.JSON(http.StatusOK, gin.H{
     "status": true,
-    "Message": "Produk berhasil diambil",
-    "product": res.Products,
+    "message": "Produk berhasil diambil",
+    "products": res.Products,
     "next_cursor": res.NextCursor,
   }) 
 }
@@ -210,4 +216,22 @@ func (h *handler) DeleteProduct(ctx *gin.Context) {
     "status": true,
     "message": "Produk berhasil dihapus",
   })
+}
+
+// -- Category Handler / Controller
+func (h *handler) GetCategories(ctx *gin.Context) {
+	categories, err := h.categoryUsecase.GetCategoryTree(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"status": false,
+			"message": "Gagal mengambil kategori",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": true,
+		"message": "Kategori berhasil diambil",
+		"categories": categories,
+	})
 }
