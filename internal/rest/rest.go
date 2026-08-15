@@ -105,16 +105,17 @@ func (r *Rest) MountEndPoint() {
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
 	productHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase)
 
-	productGroup := api.Group("/products")
-	productGroup.GET("/", productHandler.GetProductList)
-	productGroup.GET("/:id", productHandler.GetProductByID)
+	productGroup := api.Group("/lapak")
+	
+	productGroup.GET("/products", productHandler.GetProductList)
+	productGroup.GET("products/:id", productHandler.GetProductByID)
 	productGroup.GET("/categories", productHandler.GetCategories)
 	
 	productGroup.Use(middlewares.Authenticate(r.jwtAuth))
 	{
-		productGroup.POST("/", productHandler.CreateProduct)
-		productGroup.PUT("/:id", productHandler.UpdateProduct)
-		productGroup.DELETE("/:id", productHandler.DeleteProduct)
+		productGroup.POST("products", productHandler.CreateProduct)
+		productGroup.PATCH("products/:id", productHandler.UpdateProduct)
+		productGroup.DELETE("products/:id", productHandler.DeleteProduct)
 	}
 } 
 

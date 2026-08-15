@@ -55,7 +55,7 @@ func (cr *CategoryRepository) FindByID(ctx context.Context, categoryID uuid.UUID
 
 func (cr *CategoryRepository) FindIDsByBranch(ctx context.Context, branch string) ([]uuid.UUID, error) {
     var categoryIDs []uuid.UUID
-    err := cr.db.WithContext(ctx).Where("branch = ?", branch).Pluck("id", &categoryIDs).Error
+    err := cr.db.WithContext(ctx).Model(Category{}).Where("branch = ?", branch).Pluck("id", &categoryIDs).Error
     if err != nil {
       return nil, err
     }
@@ -77,7 +77,7 @@ func (pr *ProductRepository) CreateProduct(ctx context.Context, product *Product
 
 func (pr *ProductRepository) FindByID(ctx context.Context, productID uuid.UUID) (*Product, error) {
   var product Product
-  err := pr.db.WithContext(ctx).Preload("Image").Preload("user").Preload("Category").Where("id = ?", productID).First(&product).Error
+  err := pr.db.WithContext(ctx).Preload("Images").Preload("User").Preload("Category").Where("id = ?", productID).First(&product).Error
   if err != nil {
     return nil, err
   }
@@ -89,11 +89,15 @@ func (pr *ProductRepository) FindList(ctx context.Context, categoryIDs []uuid.UU
 
   db := pr.db.WithContext(ctx).Order("created_at desc").Limit(limit).Preload("User").Preload("Images").Preload("Category")
 
-  if maxPrice == nil {
-    db = db.Where("price < ?", maxPrice)
+  if len(categoryIDs) > 0 {
+		db = db.Where("category_id IN ?", categoryIDs)
+	}
+	
+  if maxPrice != nil {
+    db = db.Where("price <= ?", maxPrice)
   }
-  if minPrice == nil {
-    db = db.Where("price < ?", minPrice)
+  if minPrice != nil {
+    db = db.Where("price >= ?", minPrice)
   }
   
   if !cursor.IsZero() {
@@ -109,7 +113,7 @@ func (pr *ProductRepository) FindList(ctx context.Context, categoryIDs []uuid.UU
 }
 
 func (pr *ProductRepository) UpdateProduct(ctx context.Context, product *Product) error {
-  err := pr.db.WithContext(ctx).Model(&Product{}).Save(product).Error
+  err := pr.db.WithContext(ctx).Model(&Product{}).Where("id = ?", product.ID).Save(product).Error
   
   if err != nil {
     return err

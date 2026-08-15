@@ -17,5 +17,6 @@ func Migrate(db *gorm.DB) error {
     &space.PostLike{},
     &lapak.Category{},
     &lapak.Product{},
+    &lapak.ProductImage{},
   )
 }

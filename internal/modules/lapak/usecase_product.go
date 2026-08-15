@@ -18,6 +18,9 @@ var (
 	ErrProductForbidden         = errors.New("bukan pemilik produk ini")
 	ErrCategoryMustBeSubcategory = errors.New("harus pilih subkategori, bukan kategori besar")
 	ErrListingTypeMismatch      = errors.New("listing type nggak cocok buat kategori ini")
+  ErrInvalidCategory         = errors.New("category_id tidak valid")
+  ErrSelfDeclarationRequired = errors.New("self declaration tag wajib buat bahan baku")
+  ErrPriceMustBePositive     = errors.New("harga harus lebih dari 0")
 )
 
 type NLPClientInterface interface {

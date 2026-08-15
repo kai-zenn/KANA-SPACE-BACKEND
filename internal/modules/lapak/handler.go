@@ -1,11 +1,24 @@
 package lapak
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func writeProductError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, ErrOnlySellerCanListProduct), errors.Is(err, ErrProductForbidden):
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+	case errors.Is(err, ErrInvalidPriceRange), errors.Is(err, ErrListingTypeMismatch), errors.Is(err, ErrCategoryMustBeSubcategory):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+}
+
 type handler struct {
   productUsecase IProductUseCase
   categoryUsecase ICategoryUseCase
@@ -40,7 +53,7 @@ func (h *handler) CreateProduct(ctx *gin.Context) {
   if err := ctx.ShouldBind(&req); err != nil {
     ctx.JSON(http.StatusBadRequest, gin.H{
       "status": false,
-      "message": "Data tidak lengkap",
+      "message": err.Error(),
     })
     return
   }
