@@ -15,11 +15,19 @@ type User struct {
   PhoneNumber *string `gorm:"type:varchar(20);default:null"`
   Password  *string    `gorm:"type:varchar(255);default:null"`
   Address *string `gorm:"type:text;default:null"`
+  
   GoogleID *string    `gorm:"unique;default:null"`
+  
   ProfilePhotoLink string    `gorm:"default:''"`
+  
   Role             string    `gorm:"type:varchar(20);not null;default:'user'"`
+  
   Following []*User `gorm:"many2many:user_follows;joinForeignKey:follower_id;joinReferences:following_id"`
   Followers []*User `gorm:"many2many:user_follows;joinForeignKey:following_id;joinReferences:follower_id"`
+
+  StrikeCount      int        `gorm:"not null;default:0"`
+  ClaimFreezeUntil *time.Time // nil = boleh klaim, terisi = dibekukan sampai tanggal ini
+  
   CreatedAt time.Time
 	UpdatedAt time.Time
 }

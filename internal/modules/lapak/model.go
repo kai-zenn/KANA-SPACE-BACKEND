@@ -70,3 +70,23 @@ type UpdateProductRequest struct {
 	Price       *int      `json:"price"`
 	Status      *string   `json:"status" binding:"omitempty,oneof=AVAILABLE INACTIVE"`
 }
+
+type CreateTransactionRequest struct {
+	ProductID uuid.UUID `json:"-"`
+	BuyerID   uuid.UUID `json:"-"`
+	Quantity  int       `json:"quantity" binding:"required,min=1"`
+}
+
+type TransactionResponse struct {
+	ID           uuid.UUID  `json:"id"`
+	ProductID    uuid.UUID  `json:"product_id"`
+	Quantity     int        `json:"quantity"`
+	TotalPrice   int        `json:"total_price"`
+	Status       string     `json:"status"`
+	LogisticType *string    `json:"logistic_type,omitempty"`
+	MeetupLat    *float64   `json:"meetup_lat,omitempty"`
+	MeetupLng    *float64   `json:"meetup_lng,omitempty"`
+	QRCode       *string    `json:"qr_code,omitempty"`
+	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
