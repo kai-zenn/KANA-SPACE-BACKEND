@@ -24,6 +24,8 @@ const (
 const (
 	ProductStatusAvailable = "AVAILABLE"
 	ProductStatusInactive  = "INACTIVE"
+	ProductStatusLocked    = "LOCKED"
+	ProductStatusCompleted = "COMPLETED"
 )
 
 const (
