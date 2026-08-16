@@ -23,13 +23,23 @@ type IProductRepository interface {
 	DeleteProduct(ctx context.Context, productID uuid.UUID) error
 }
 
+type ITransactionRepository interface {
+	CreateTransaction(ctx context.Context, tx *Transaction) error
+	FindByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
+	FindByQRCode(ctx context.Context, qrCode string) (*Transaction, error)
+	FindExpiredLocked(ctx context.Context, now time.Time) ([]Transaction, error) // buat cron
+	UpdateTransaction(ctx context.Context, tx *Transaction) error
+}
 
-// == Product Repository ==
+
+// == Category Repository ==
 type CategoryRepository struct {
   db *gorm.DB
 }
 func NewCategoryRepository(db *gorm.DB) *CategoryRepository {
-  return &CategoryRepository{db: db}
+  return &CategoryRepository{
+    db: db,
+  }
 }
 
 func (cr *CategoryRepository) FindAll(ctx context.Context) ([]Category, error) {
@@ -137,5 +147,61 @@ func (pr *ProductRepository) DeleteProduct(ctx context.Context, productID uuid.U
     return err
   }
 
+  return nil
+}
+
+// == Transaction Repository ==
+type TransactionRepository struct {
+  db *gorm.DB
+}
+
+func NewTransactionRepository(db *gorm.DB) *TransactionRepository{
+  return &TransactionRepository{
+    db: db,
+  }
+}
+
+func (tr *TransactionRepository) CreateTransaction(ctx context.Context, tx *Transaction) error {
+  err := tr.db.WithContext(ctx).Create(tx).Error
+  if err != nil {
+    return err
+  }
+  return nil
+}
+
+func (tr *TransactionRepository) FindByID(ctx context.Context, id uuid.UUID) (*Transaction, error) {
+  var tx Transaction
+  err := tr.db.WithContext(ctx).Where("id = ?", id).First(&tx).Error
+  if err != nil {
+    return nil, err
+  }
+  return &tx, nil
+}
+
+func (tr *TransactionRepository) FindByQRCode(ctx context.Context, qrCode string) (*Transaction, error) {
+  var tx Transaction
+  err := tr.db.WithContext(ctx).Preload("Product").Where("qr_code = ?", qrCode).First(&tx).Error
+  if err != nil {
+    return nil, err
+  }
+  return &tx, nil
+}
+
+func (tr *TransactionRepository) FindExpiredLocked(ctx context.Context, now time.Time) ([]Transaction, error) {
+  var txs []Transaction
+  err := tr.db.WithContext(ctx).Preload("Product").Where("expires_at < ? AND status = ?", now).Find(&txs).Error
+  if err != nil {
+    return nil, err
+  }
+  return txs, nil
+}
+
+func (tr *TransactionRepository) UpdateTransaction(ctx context.Context, tx *Transaction) error{
+  err := tr.db.WithContext(ctx).Model(&Transaction{}).Where("id = ?", tx.ID).Save(tx).Error
+  
+  if err != nil {
+    return err
+  }
+  
   return nil
 }
