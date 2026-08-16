@@ -189,7 +189,7 @@ func (tr *TransactionRepository) FindByQRCode(ctx context.Context, qrCode string
 
 func (tr *TransactionRepository) FindExpiredLocked(ctx context.Context, now time.Time) ([]Transaction, error) {
   var txs []Transaction
-  err := tr.db.WithContext(ctx).Preload("Product").Where("expires_at < ? AND status = ?", now).Find(&txs).Error
+  err := tr.db.WithContext(ctx).Preload("Product").Where("expires_at < ? AND status = ?", now, TransactionStatusLocked).Find(&txs).Error
   if err != nil {
     return nil, err
   }
