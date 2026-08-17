@@ -242,10 +242,14 @@ func (tu *TransactionUseCase) ExpireStaleTransactions(ctx context.Context) error
 
 	for _, tx := range expired {
 		tx.Status = TransactionStatusExpired
-		_ = tu.tr.UpdateTransaction(ctx, &tx)
+		if err := tu.tr.UpdateTransaction(ctx, &tx); err != nil {
+					log.Printf("Gagal update status transaksi %s: %v\n", tx.ID, err)
+				}
 
 		tx.Product.Status = ProductStatusAvailable
-		_ = tu.pr.UpdateProduct(ctx, &tx.Product)
+		if err := tu.pr.UpdateProduct(ctx, &tx.Product); err != nil {
+					log.Printf("Gagal mengembalikan status produk %s: %v\n", tx.Product.ID, err)
+				}
 
 		buyer, err := tu.ur.GetByID(ctx, tx.BuyerID)
 		if err != nil {

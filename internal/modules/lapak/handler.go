@@ -248,3 +248,5 @@ func (h *handler) GetCategories(ctx *gin.Context) {
 		"categories": categories,
 	})
 }
+
+// -- Transaction Handler / Controller
