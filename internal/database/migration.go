@@ -18,5 +18,6 @@ func Migrate(db *gorm.DB) error {
     &lapak.Category{},
     &lapak.Product{},
     &lapak.ProductImage{},
+    &lapak.Transaction{},
   )
 }
