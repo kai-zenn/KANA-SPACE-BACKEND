@@ -22,14 +22,17 @@ func writeProductError(c *gin.Context, err error) {
 type handler struct {
   productUsecase IProductUseCase
   categoryUsecase ICategoryUseCase
+  transactionUsecase ITransactionUseCase
 }
 
-func NewLapakHandler(productUsecase IProductUseCase, categoryUsecase ICategoryUseCase) *handler {
+func NewLapakHandler(productUsecase IProductUseCase, categoryUsecase ICategoryUseCase, transactionUsecase ITransactionUseCase) *handler {
   return &handler{
     productUsecase: productUsecase,
     categoryUsecase: categoryUsecase,
+    transactionUsecase: transactionUsecase,
   }
 }
+
 // -- Produk Handler / Controller
 func (h *handler) CreateProduct(ctx *gin.Context) {
   userIDVal, exist := ctx.Get("user_id")
@@ -250,3 +253,196 @@ func (h *handler) GetCategories(ctx *gin.Context) {
 }
 
 // -- Transaction Handler / Controller
+func (h *handler) CreateTransaction(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+  productID, err := uuid.Parse(ctx.Param("id"))
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Product ID tidak valid",
+    })
+    return
+  }
+
+  var req CreateTransactionRequest
+  if err := ctx.ShouldBindJSON(&req); err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Invalid request",
+    })
+    return
+  }
+
+  req.ProductID = productID
+  req.BuyerID = userID
+
+  // ini untuk mendapatkan koordinat pembeli dari request, mobile harus mengirimkan koordinat pembeli dari GPS
+  // keknya bakal gw optimalkan lagi kedepannya
+ 	var body struct {
+		Latitude  float64 `json:"buyer_latitude" binding:"required"`
+		Longitude float64 `json:"buyer_longitude" binding:"required"`
+	}
+	
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "koordinat pembeli wajib dikirim"})
+		return
+	}
+	
+	res, err := h.transactionUsecase.NewTransaction(ctx.Request.Context(), req, body.Latitude, body.Longitude)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"status": false,
+			"message": "Gagal membuat transaksi",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"status": true,
+		"message": "Transaksi berhasil dibuat",
+		"data": res,
+	})
+}
+
+func (h *handler) ConfirmTransaction(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+  txID, err := uuid.Parse(ctx.Param("id"))
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Transaksi tidak valid",
+    })
+    return
+  }
+
+  err = h.transactionUsecase.ConfirmTransaction(ctx.Request.Context(), txID, userID)
+  if err != nil {
+    ctx.JSON(http.StatusInternalServerError, gin.H{
+      "status": false,
+      "message": "Gagal mengkonfirmasi transaksi",
+    })
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status": true,
+    "message": "Transaksi berhasil dikonfirmasi",
+  })
+}
+
+func (h *handler) ConfirmViaQR(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+  var body struct {
+    QRCode string `json:"qrcode" binding:"required"`
+  }
+
+  if err := ctx.ShouldBindJSON(&body); err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": err.Error(),
+    })
+    return
+  }
+
+  err := h.transactionUsecase.CompleteViaQR(ctx.Request.Context(), body.QRCode, userID)
+  if err != nil {
+    writeProductError(ctx, err)
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status": true,
+    "message": "Transaksi berhasil dikonfirmasi",
+  })
+}
+
+func (h *handler) CompleteManual(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+  txID, err := uuid.Parse(ctx.Param("id"))
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Transaksi tidak valid",
+    })
+    return
+  }
+
+  err = h.transactionUsecase.CompleteManual(ctx.Request.Context(), txID, userID)
+  if err != nil {
+    writeProductError(ctx, err)
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status": true,
+    "message": "Transaksi berhasil dikonfirmasi",
+  })
+}
+
+func (h *handler) CancelTransaction(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+  txID, err := uuid.Parse(ctx.Param("id"))
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status": false,
+      "message": "Transaksi tidak valid",
+    })
+    return
+  }
+
+  err = h.transactionUsecase.CancelTransaction(ctx.Request.Context(), txID, userID)
+  if err != nil {
+    writeProductError(ctx, err)
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status": true,
+    "message": "Transaksi berhasil dibatalkan",
+  })
+}
