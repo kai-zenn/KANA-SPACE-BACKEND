@@ -64,12 +64,13 @@ func (h *handler) CreateProduct(ctx *gin.Context) {
   req.UserID = userID
   res, err := h.productUsecase.NewProduct(ctx.Request.Context(), req, "seller")
   if err != nil {
-    ctx.JSON(http.StatusInternalServerError, gin.H{
+    ctx.JSON(http.StatusBadRequest, gin.H{
       "status": false,
       "message": err.Error(),
     })
     return
   }
+  
   ctx.JSON(http.StatusOK, gin.H{
     "status": true,
     "message": "Produk berhasil ditambahkan",
