@@ -100,22 +100,35 @@ func (r *Rest) MountEndPoint() {
 	// -- Lapak Module
 	lapakProductR := lapak.NewProductRepository(r.db)
 	lapakCategoryR := lapak.NewCategoryRepository(r.db)
+	lapakTransactionR := lapak.NewTransactionRepository(r.db)
 	
 	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
-	productHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase)
+	transactionUseCase := lapak.NewTransactionUseCase(lapakTransactionR, lapakProductR, userRepo)
+	
+	lapakHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase, transactionUseCase)
 
-	productGroup := api.Group("/lapak")
-	
-	productGroup.GET("/products", productHandler.GetProductList)
-	productGroup.GET("products/:id", productHandler.GetProductByID)
-	productGroup.GET("/categories", productHandler.GetCategories)
-	
-	productGroup.Use(middlewares.Authenticate(r.jwtAuth))
+	lapakGroup := api.Group("/lapak")
+
+	// Public endpoints
+	lapakGroup.GET("/products", lapakHandler.GetProductList)
+	lapakGroup.GET("products/:id", lapakHandler.GetProductByID)
+	lapakGroup.GET("/categories", lapakHandler.GetCategories)
+
+	// Protected / Authenticated endpoints
+	lapakGroup.Use(middlewares.Authenticate(r.jwtAuth))
 	{
-		productGroup.POST("products", productHandler.CreateProduct)
-		productGroup.PATCH("products/:id", productHandler.UpdateProduct)
-		productGroup.DELETE("products/:id", productHandler.DeleteProduct)
+	  // Product endpoints
+		lapakGroup.POST("products", lapakHandler.CreateProduct)
+		lapakGroup.PATCH("products/:id", lapakHandler.UpdateProduct)
+		lapakGroup.DELETE("products/:id", lapakHandler.DeleteProduct)
+
+		// Transaction endpoints
+		lapakGroup.POST("/products/:id/transactions", lapakHandler.CreateTransaction)
+		lapakGroup.POST("/transactions/:id/confirm", lapakHandler.ConfirmTransaction)   // FINISHED_GOODS
+		lapakGroup.POST("/transactions/complete-qr", lapakHandler.ConfirmViaQR)         // RAW_MATERIAL
+		lapakGroup.POST("/transactions/:id/complete", lapakHandler.CompleteManual)       // FINISHED_GOODS
+		lapakGroup.POST("/transactions/:id/cancel", lapakHandler.CancelTransaction)  
 	}
 } 
 

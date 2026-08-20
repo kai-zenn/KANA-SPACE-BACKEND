@@ -273,36 +273,32 @@ func (h *handler) CreateTransaction(ctx *gin.Context) {
     return
   }
 
-  var req CreateTransactionRequest
-  if err := ctx.ShouldBindJSON(&req); err != nil {
-    ctx.JSON(http.StatusBadRequest, gin.H{
-      "status": false,
-      "message": "Invalid request",
-    })
-    return
-  }
-
-  req.ProductID = productID
-  req.BuyerID = userID
-
   // ini untuk mendapatkan koordinat pembeli dari request, mobile harus mengirimkan koordinat pembeli dari GPS
   // keknya bakal gw optimalkan lagi kedepannya
  	var body struct {
+		Quantity  int     `json:"quantity" binding:"required,min=1"`
 		Latitude  float64 `json:"buyer_latitude" binding:"required"`
 		Longitude float64 `json:"buyer_longitude" binding:"required"`
 	}
 	
 	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "koordinat pembeli wajib dikirim"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "koordinat pembeli wajib dikirim",
+			"error":   err.Error(),
+		})
 		return
+	}
+
+	
+	req := CreateTransactionRequest{
+		ProductID: productID,
+		BuyerID:   userID,
+		Quantity:  body.Quantity,
 	}
 	
 	res, err := h.transactionUsecase.NewTransaction(ctx.Request.Context(), req, body.Latitude, body.Longitude)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"status": false,
-			"message": "Gagal membuat transaksi",
-		})
+		writeProductError(ctx, err)
 		return
 	}
 
@@ -335,10 +331,7 @@ func (h *handler) ConfirmTransaction(ctx *gin.Context) {
 
   err = h.transactionUsecase.ConfirmTransaction(ctx.Request.Context(), txID, userID)
   if err != nil {
-    ctx.JSON(http.StatusInternalServerError, gin.H{
-      "status": false,
-      "message": "Gagal mengkonfirmasi transaksi",
-    })
+    writeProductError(ctx, err)
     return
   }
 
@@ -360,7 +353,7 @@ func (h *handler) ConfirmViaQR(ctx *gin.Context) {
   userID, _ := userIDVal.(uuid.UUID)
 
   var body struct {
-    QRCode string `json:"qrcode" binding:"required"`
+    QRCode string `json:"qr_code" binding:"required"`
   }
 
   if err := ctx.ShouldBindJSON(&body); err != nil {

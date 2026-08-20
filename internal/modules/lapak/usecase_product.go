@@ -138,7 +138,7 @@ func (pu *ProductUseCase) NewProduct(ctx context.Context, req CreateProductReque
 
 	product := &Product{
   	ID: productID, UserID: req.UserID, Title: req.Title, Description: req.Description,
-  	CategoryID: category.ID, ListingType: req.ListingType, Price: req.Price,
+  	CategoryID: category.ID, ListingType: req.ListingType, Price: req.Price, Stock: req.Stock,
   	SelfDeclarationTag: selfDeclarationTag, Status: ProductStatusAvailable,
   	Latitude: req.Latitude, Longitude: req.Longitude, Images: images,
 	}
@@ -151,7 +151,7 @@ func (pu *ProductUseCase) NewProduct(ctx context.Context, req CreateProductReque
 	return &ProductResponse{
 		ID: product.ID, Seller: ToProductSeller(*seller), Title: product.Title,
 		Description: product.Description, Category: ToCategoryResponse(*category),
-		ListingType: product.ListingType, Price: product.Price,
+		ListingType: product.ListingType, Price: product.Price, Stock: product.Stock,
 		SelfDeclarationTag: product.SelfDeclarationTag, Status: product.Status,
 		PhotoURLs: newPhotoUrl, CreatedAt: product.CreatedAt,
 	}, nil
