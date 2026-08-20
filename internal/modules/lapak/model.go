@@ -22,6 +22,7 @@ type CreateProductRequest struct {
 	CategoryID         string                  `form:"category_id" binding:"required,uuid"`
 	ListingType        string                  `form:"listing_type" binding:"required,oneof=HIBAH JUAL_BORONGAN DIJUAL"`
 	Price              int                     `form:"price"`
+	Stock              *int                    `form:"stock"`
 	SelfDeclarationTag string                  `form:"self_declaration_tag"`
 	Latitude           float64                 `form:"latitude" binding:"required"`
 	Longitude          float64                 `form:"longitude" binding:"required"`
@@ -42,6 +43,7 @@ type ProductResponse struct {
 	Category           CategoryResponse `json:"category"`
 	ListingType        string           `json:"listing_type"`
 	Price              int              `json:"price"`
+	Stock              *int             `json:"stock,omitempty"`
 	SelfDeclarationTag *string          `json:"self_declaration_tag,omitempty"`
 	Status             string           `json:"status"`
 	PhotoURLs          []string         `json:"photo_urls"`
