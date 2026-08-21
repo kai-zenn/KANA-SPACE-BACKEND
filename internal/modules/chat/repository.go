@@ -8,8 +8,9 @@ import (
 
 type IConversationRepository interface {
 	CreateConversation(ctx context.Context, c *Conversation) error
-	FindByTransactionID(ctx context.Context, transactionID uuid.UUID) (*Conversation, error)
+	FindByProductAndBuyer(ctx context.Context, productID, buyerID uuid.UUID) (*Conversation, error)
 	FindByID(ctx context.Context, id uuid.UUID) (*Conversation, error)
+	FindByParticipant(ctx context.Context, userID uuid.UUID) ([]Conversation, error)
 }
 
 type IMessageRepository interface {

@@ -2,16 +2,20 @@ package chat
 
 import (
 	"time"
+
 	"github.com/google/uuid"
 )
 
 type ConversationResponse struct {
-	ID            uuid.UUID `json:"id"`
-	TransactionID uuid.UUID `json:"transaction_id"`
-	ProductID     uuid.UUID `json:"product_id"`
-	SellerID      uuid.UUID `json:"seller_id"`
-	BuyerID       uuid.UUID `json:"buyer_id"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID        uuid.UUID `json:"id"`
+	ProductID uuid.UUID `json:"product_id"`
+	SellerID  uuid.UUID `json:"seller_id"`
+	BuyerID   uuid.UUID `json:"buyer_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ConversationListResponse struct {
+	Conversations []ConversationResponse `json:"conversations"`
 }
 
 type CreateMessageRequest struct {
