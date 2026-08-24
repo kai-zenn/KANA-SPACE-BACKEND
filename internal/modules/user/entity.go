@@ -15,6 +15,7 @@ type User struct {
   PhoneNumber *string `gorm:"type:varchar(20);default:null"`
   Password  *string    `gorm:"type:varchar(255);default:null"`
   Address *string `gorm:"type:text;default:null"`
+  ShopName *string `gorm:"type:varchar(255);default:null"`
   
   GoogleID *string    `gorm:"unique;default:null"`
   

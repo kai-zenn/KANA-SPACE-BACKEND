@@ -50,7 +50,7 @@ type IUserUseCase interface {
   UnfollowUser(ctx context.Context, param FollowParam) error
 }
 
-type UserUseCase struct {
+type userUseCase struct {
   ur IUserRepository
   bcrypt BcryptInterface
   jwtAuth JWTInterface
@@ -65,7 +65,7 @@ func NewUserUseCase(
 	storage StorageInterface,
 	googleVerifier GoogleVerifierInterface,
 ) IUserUseCase {
-	return &UserUseCase{
+	return &userUseCase{
 		ur:            ur,
 		bcrypt:       bcrypt,
 		jwtAuth:          jwt,
@@ -79,7 +79,7 @@ var (
   ErrUserNotFound = errors.New("User yang diikuti tidak ditemukan")
 )
 
-func (uc *UserUseCase) Register(ctx context.Context, req UserRegisterRequest) error {
+func (uc *userUseCase) Register(ctx context.Context, req UserRegisterRequest) error {
   existingUser, _ := uc.ur.GetProfileByUsername(ctx, req.Username)
   if existingUser != nil {
     return errors.New("Username sudah terdaftar")
@@ -112,7 +112,7 @@ func (uc *UserUseCase) Register(ctx context.Context, req UserRegisterRequest) er
   return uc.ur.CreateUser(ctx, user)
 }
 
-func (uc *UserUseCase) Login(ctx context.Context, req UserLoginRequest) (*UserLoginResponse, error) {
+func (uc *userUseCase) Login(ctx context.Context, req UserLoginRequest) (*UserLoginResponse, error) {
 	user, err := uc.ur.GetProfileByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, errors.New("Username Salah")
@@ -135,7 +135,7 @@ func (uc *UserUseCase) Login(ctx context.Context, req UserLoginRequest) (*UserLo
 	return &UserLoginResponse{Token: token}, nil
 }
 
-func (uc *UserUseCase) UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error {
+func (uc *userUseCase) UpgradeToSeller(ctx context.Context, req UpgradeSellerRequest) error {
   user, err := uc.ur.GetByID(ctx, req.UserID)
   if err != nil{
     return errors.New("User Tidak ditemukan")
@@ -155,11 +155,11 @@ func (uc *UserUseCase) UpgradeToSeller(ctx context.Context, req UpgradeSellerReq
   return uc.ur.UpdateUser(ctx, req.UserID, updates)
 }
 
-func (uc *UserUseCase) GetProfileByUsername(ctx context.Context, username string) (*User, error) {
+func (uc *userUseCase) GetProfileByUsername(ctx context.Context, username string) (*User, error) {
 	return uc.ur.GetProfileByUsername(ctx, username)
 }
 
-func (uc *UserUseCase) Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error {
+func (uc *userUseCase) Update(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) error {
 	updates := make(map[string]interface{})
 	if req.FirstName != nil {
 		updates["first_name"] = *req.FirstName
@@ -194,7 +194,7 @@ func (uc *UserUseCase) Update(ctx context.Context, userID uuid.UUID, req UpdateP
 	return uc.ur.UpdateUser(ctx, userID, updates)
 }
 
-func (uc *UserUseCase) UpdatePassword(ctx context.Context, userID uuid.UUID, req UpdatePasswordRequest) error {
+func (uc *userUseCase) UpdatePassword(ctx context.Context, userID uuid.UUID, req UpdatePasswordRequest) error {
 	user, err := uc.ur.GetByID(ctx, userID)
 	if err != nil {
 		return errors.New("gagal mengambil data user")
@@ -227,7 +227,7 @@ func (uc *UserUseCase) UpdatePassword(ctx context.Context, userID uuid.UUID, req
 	return nil
 }
 
-func (uc *UserUseCase) UpdatePhotoProfile(ctx context.Context, param PhotoUpdate) (string, error) {
+func (uc *userUseCase) UpdatePhotoProfile(ctx context.Context, param PhotoUpdate) (string, error) {
   user, err := uc.ur.GetByID(ctx, param.UserID)
 	if err != nil {
 		return "", errors.New("User Tidak ditemukan")
@@ -249,7 +249,7 @@ func (uc *UserUseCase) UpdatePhotoProfile(ctx context.Context, param PhotoUpdate
 	return newPhotoLink, nil
 }
 
-func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthRequest) (*UserLoginResponse, error) {
+func (uc *userUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthRequest) (*UserLoginResponse, error) {
   googleClaims, err := uc.googleVerifier.VerifyToken(ctx, req.IDToken)
   if err != nil{
     return nil, fmt.Errorf("Google authentication failed: %w", err)
@@ -297,7 +297,7 @@ func (uc *UserUseCase) LoginWithGoogle(ctx context.Context, req GoogleAuthReques
   return &UserLoginResponse{Token: token}, nil
 }
 
-func (uc *UserUseCase) FollowUsers(ctx context.Context, param FollowParam) error {
+func (uc *userUseCase) FollowUsers(ctx context.Context, param FollowParam) error {
   if param.FollowerID == param.FollowingID {
     return ErrFollowSelf
   }
@@ -315,7 +315,7 @@ func (uc *UserUseCase) FollowUsers(ctx context.Context, param FollowParam) error
   return nil
 }
 
-func (uc *UserUseCase) UnfollowUser(ctx context.Context, param FollowParam) error {
+func (uc *userUseCase) UnfollowUser(ctx context.Context, param FollowParam) error {
   if param.FollowerID == param.FollowingID {
     return ErrFollowSelf
   }
