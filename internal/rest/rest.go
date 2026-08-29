@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"KANA-SPACE-BACKEND/internal/adapters"
 	"KANA-SPACE-BACKEND/internal/middlewares"
+	"KANA-SPACE-BACKEND/internal/modules/chat"
 	"KANA-SPACE-BACKEND/internal/modules/lapak"
 	"KANA-SPACE-BACKEND/internal/modules/space"
 	"KANA-SPACE-BACKEND/internal/modules/user"
@@ -101,10 +103,15 @@ func (r *Rest) MountEndPoint() {
 	lapakProductR := lapak.NewProductRepository(r.db)
 	lapakCategoryR := lapak.NewCategoryRepository(r.db)
 	lapakTransactionR := lapak.NewTransactionRepository(r.db)
+
+	chatRepo := chat.NewConversationRepository(r.db)
+	messageRepo := chat.NewMessageRepository(r.db)
+
+	chatAdapter := adapters.NewChatAdapter(messageRepo, chatRepo)
 	
 	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
-	transactionUseCase := lapak.NewTransactionUseCase(lapakTransactionR, lapakProductR, userRepo)
+	transactionUseCase := lapak.NewTransactionUseCase(lapakTransactionR, lapakProductR, userRepo, chatAdapter)
 	
 	lapakHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase, transactionUseCase)
 
@@ -129,6 +136,33 @@ func (r *Rest) MountEndPoint() {
 		lapakGroup.POST("/transactions/complete-qr", lapakHandler.ConfirmViaQR)         // RAW_MATERIAL
 		lapakGroup.POST("/transactions/:id/complete", lapakHandler.CompleteManual)       // FINISHED_GOODS
 		lapakGroup.POST("/transactions/:id/cancel", lapakHandler.CancelTransaction)  
+
+		// Checkout dari offer
+		lapakGroup.POST("/transactions/checkout-offer", lapakHandler.CheckoutFromOffer)
+	}
+
+	// -- Chat & Nego Module
+	lapakAdapter := adapters.NewLapakAdapter(lapakProductR)
+	
+	chatUseCase := chat.NewConversationUseCase(chatRepo, lapakAdapter)
+	messageUseCase := chat.NewMessageUseCase(chatRepo, messageRepo, lapakAdapter)
+	
+	chatHandler := chat.NewHandler(chatUseCase, messageUseCase)
+	
+	chatGroup := api.Group("/chat")
+		  
+	chatGroup.Use(middlewares.Authenticate(r.jwtAuth))
+	{
+	  // Endpoint terkait Percakapan (Conversation)
+		chatGroup.GET("/conversations", chatHandler.ListConversations)
+		chatGroup.POST("/products/:productId/conversation", chatHandler.GetOrCreateConversation)
+		
+		// Endpoint terkait Pesan & Offer (Message)
+		chatGroup.POST("/conversations/:id/messages", chatHandler.SendMessage)
+		chatGroup.GET("/conversations/:id/messages", chatHandler.GetMessages)
+
+		// Endpoint khusus merespon Offer (Accept/Reject)
+		chatGroup.POST("/messages/:id/respond-offer", chatHandler.RespondToOffer)
 	}
 } 
 
