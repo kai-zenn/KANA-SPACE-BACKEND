@@ -440,3 +440,35 @@ func (h *handler) CancelTransaction(ctx *gin.Context) {
     "message": "Transaksi berhasil dibatalkan",
   })
 }
+
+func (h *handler) CheckoutFromOffer(ctx *gin.Context) {
+  userIDVal, exist := ctx.Get("user_id")
+  if !exist {
+    ctx.JSON(http.StatusUnauthorized, gin.H{
+      "status": false,
+      "error": "user_id not found",
+    })
+    return
+  }
+  userID, _ := userIDVal.(uuid.UUID)
+
+	var req CheckoutFromOfferRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": false, "message": err.Error()})
+		return
+	}
+
+	res, err := h.transactionUsecase.CheckoutFromOffer(ctx.Request.Context(), req.OfferID, userID, req.BuyerLat, req.BuyerLng)
+	if err != nil {
+    ctx.JSON(http.StatusInternalServerError, gin.H{
+      "status": false,
+      "message": "Penawaran Ditolak",
+    })
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+	"status": true, 
+	"message": "Checkout berhasil, transaksi dibuat", 
+	"data": res,
+	})
+}

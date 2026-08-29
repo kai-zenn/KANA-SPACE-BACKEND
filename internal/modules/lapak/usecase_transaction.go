@@ -17,7 +17,9 @@ var (
 	ErrInsufficientStock    = errors.New("stok tidak cukup")
 	ErrTransactionForbidden = errors.New("bukan pihak yang terlibat di transaksi ini")
 	ErrInvalidTransactionStatus = errors.New("status transaksi tidak sesuai buat aksi ini")
-	ErrUserFrozen           = errors.New("akun sedang dibekukan dari klaim Rp0")
+	ErrUserFrozen = errors.New("akun sedang dibekukan dari klaim Rp0")
+	ErrOfferNotAccepted = errors.New("offer belum di-accept penjual")
+	ErrNotOfferOwner = errors.New("bukan pemilik offer ini")
 )
 
 const selfPickupRadiusMeters = 4000
@@ -49,6 +51,43 @@ func toTransactionResponse(tx *Transaction) *TransactionResponse {
 	}
 }
 
+func (tu *TransactionUseCase) lockProductForPickup(
+	ctx context.Context, product *Product, buyerID uuid.UUID, price int,
+	buyerLat, buyerLng float64, offerID *uuid.UUID,
+) (*Transaction, error) {
+	tx := &Transaction{
+		ID: uuid.New(), ProductID: product.ID, BuyerID: buyerID,
+		Quantity: 1, TotalPrice: price, OfferID: offerID,
+	}
+
+	distance := haversineDistanceMeters(buyerLat, buyerLng, product.Latitude, product.Longitude)
+	if distance <= selfPickupRadiusMeters {
+		logisticType := LogisticTypeSelfPickup
+		tx.LogisticType = &logisticType
+		fuzzedLat, fuzzedLng := fuzzCoordinate(product.Latitude, product.Longitude)
+		tx.MeetupLat, tx.MeetupLng = &fuzzedLat, &fuzzedLng
+	} else {
+		logisticType := LogisticType3PL
+		tx.LogisticType = &logisticType
+	}
+
+	qrCode := uuid.New().String()
+	tx.QRCode = &qrCode
+	expiresAt := time.Now().Add(24 * time.Hour)
+	tx.ExpiresAt = &expiresAt
+	tx.Status = TransactionStatusLocked
+
+	product.Status = ProductStatusLocked
+	if err := tu.pr.UpdateProduct(ctx, product); err != nil {
+		return nil, err
+	}
+	if err := tu.tr.CreateTransaction(ctx, tx); err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+
 type IChatAdapter interface {
 	GetOfferInfo(ctx context.Context, offerID uuid.UUID) (*OfferInfo, error)
 }
@@ -68,6 +107,7 @@ type ITransactionUseCase interface {
 	CompleteViaQR(ctx context.Context, qrCode string, scannerID uuid.UUID) error
 	CompleteManual(ctx context.Context, transactionID, requesterID uuid.UUID) error
 	CancelTransaction(ctx context.Context, transactionID, requesterID uuid.UUID) error
+	CheckoutFromOffer(ctx context.Context, offerID, buyerID uuid.UUID, buyerLat, buyerLng float64) (*TransactionResponse, error)
 }
 
 type TransactionUseCase struct {
@@ -136,6 +176,12 @@ func (tu *TransactionUseCase) NewTransaction(ctx context.Context, req CreateTran
       if err := tu.pr.UpdateProduct(ctx, product); err != nil {
         return nil, err
       }
+
+     	tx, err := tu.lockProductForPickup(ctx, product, req.BuyerID, product.Price, buyerLat, buyerLng, nil)
+     	if err != nil {
+      		return nil, err
+     	}
+     	return toTransactionResponse(tx), nil
       
     case CategoryBranchFinishedGoods:
       if product.Stock == nil || *product.Stock < req.Quantity {
@@ -285,4 +331,32 @@ func (tu *TransactionUseCase) ExpireStaleTransactions(ctx context.Context) error
 		}
 	}
 	return nil
+}
+
+func (tu *TransactionUseCase) CheckoutFromOffer(ctx context.Context, offerID, buyerID uuid.UUID, buyerLat, buyerLng float64) (*TransactionResponse, error) {
+	offer, err := tu.ca.GetOfferInfo(ctx, offerID)
+	if err != nil {
+		return nil, err
+	}
+	if offer.Status != "ACCEPTED" {
+		return nil, ErrOfferNotAccepted
+	}
+	if offer.BuyerID != buyerID {
+		return nil, ErrNotOfferOwner
+	}
+
+	product, err := tu.pr.FindByID(ctx, offer.ProductID)
+	if err != nil {
+		return nil, err
+	}
+	if product.Status != ProductStatusAvailable {
+		return nil, ErrProductNotAvailable
+	}
+
+	tx, err := tu.lockProductForPickup(ctx, product, buyerID, offer.Price, buyerLat, buyerLng, &offerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toTransactionResponse(tx), nil
 }
