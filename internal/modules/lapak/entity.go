@@ -100,6 +100,9 @@ type Transaction struct {
 
 	Status string `gorm:"type:varchar(20);not null;index"`
 
+	OfferID *uuid.UUID `gorm:"type:uuid;index"`
+	SourceTransactionID *uuid.UUID `gorm:"type:uuid"`
+
 	LogisticType *string `gorm:"type:varchar(20)"`
 	MeetupLat    *float64
 	MeetupLng    *float64 

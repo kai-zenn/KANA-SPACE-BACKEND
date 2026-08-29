@@ -49,6 +49,19 @@ func toTransactionResponse(tx *Transaction) *TransactionResponse {
 	}
 }
 
+type IChatAdapter interface {
+	GetOfferInfo(ctx context.Context, offerID uuid.UUID) (*OfferInfo, error)
+}
+
+type OfferInfo struct {
+	OfferID   uuid.UUID
+	ProductID uuid.UUID
+	SellerID  uuid.UUID
+	BuyerID   uuid.UUID
+	Price     int
+	Status    string
+}
+
 type ITransactionUseCase interface {
 	NewTransaction(ctx context.Context, req CreateTransactionRequest, buyerLat, buyerLng float64) (*TransactionResponse, error)
 	ConfirmTransaction(ctx context.Context, transactionID, requesterID uuid.UUID) error
@@ -61,13 +74,15 @@ type TransactionUseCase struct {
 	tr ITransactionRepository
 	pr IProductRepository
 	ur user.IUserRepository
+	ca IChatAdapter
 }
 
-func NewTransactionUseCase(tr ITransactionRepository, pr IProductRepository, ur user.IUserRepository) ITransactionUseCase {
+func NewTransactionUseCase(tr ITransactionRepository, pr IProductRepository, ur user.IUserRepository, ca IChatAdapter) ITransactionUseCase {
 	return &TransactionUseCase{
 		tr: tr,
 		pr: pr,
 		ur: ur,
+		ca: ca,
 	}
 }
 

@@ -92,3 +92,9 @@ type TransactionResponse struct {
 	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
+
+type CheckoutFromOfferRequest struct {
+	OfferID  uuid.UUID `json:"offer_id" binding:"required"`
+	BuyerLat float64   `json:"buyer_lat" binding:"required"`
+	BuyerLng float64   `json:"buyer_lng" binding:"required"`
+}

@@ -25,7 +25,7 @@ type IProductRepository interface {
 
 type ITransactionRepository interface {
 	CreateTransaction(ctx context.Context, tx *Transaction) error
-	FindByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
+	FindByID(ctx context.Context, transactionId uuid.UUID) (*Transaction, error)
 	FindByQRCode(ctx context.Context, qrCode string) (*Transaction, error)
 	FindExpiredLocked(ctx context.Context, now time.Time) ([]Transaction, error) // buat cron
 	UpdateTransaction(ctx context.Context, tx *Transaction) error
@@ -169,9 +169,9 @@ func (tr *TransactionRepository) CreateTransaction(ctx context.Context, tx *Tran
   return nil
 }
 
-func (tr *TransactionRepository) FindByID(ctx context.Context, id uuid.UUID) (*Transaction, error) {
+func (tr *TransactionRepository) FindByID(ctx context.Context, transactionId uuid.UUID) (*Transaction, error) {
   var tx Transaction
-  err := tr.db.WithContext(ctx).Preload("Product").Where("id = ?", id).First(&tx).Error
+  err := tr.db.WithContext(ctx).Preload("Product").Where("id = ?", transactionId).First(&tx).Error
   if err != nil {
     return nil, err
   }
