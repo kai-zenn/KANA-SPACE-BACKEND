@@ -35,7 +35,7 @@ func (h *UserHandler) Register(ctx *gin.Context) {
     return
   }
 
-  ctx.JSON(http.StatusOK, gin.H{
+  ctx.JSON(http.StatusCreated, gin.H{
     "status":  true,
     "message": "Berhasil mendaftar pengguna",
   })

@@ -71,7 +71,7 @@ func (h *handler) CreateProduct(ctx *gin.Context) {
     return
   }
   
-  ctx.JSON(http.StatusOK, gin.H{
+  ctx.JSON(http.StatusCreated, gin.H{
     "status": true,
     "message": "Produk berhasil ditambahkan",
     "data": res,

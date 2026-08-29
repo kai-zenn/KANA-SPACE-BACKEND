@@ -1,6 +1,7 @@
 package database
 
 import (
+	"KANA-SPACE-BACKEND/internal/modules/chat"
 	"KANA-SPACE-BACKEND/internal/modules/lapak"
 	"KANA-SPACE-BACKEND/internal/modules/space"
 	"KANA-SPACE-BACKEND/internal/modules/user"
@@ -19,5 +20,7 @@ func Migrate(db *gorm.DB) error {
     &lapak.Product{},
     &lapak.ProductImage{},
     &lapak.Transaction{},
+    &chat.Conversation{},
+    &chat.Message{},
   )
 }
