@@ -43,6 +43,13 @@ func (la *LapakAdapter) ValidateOfferPrice(ctx context.Context, productID uuid.U
 	if price <= 0 {
 		return errors.New("harga tawaran harus lebih besar dari 0")
 	}
+
+	if product.ListingType == "JUAL_BORONGAN" {
+		if price < 5000 || price > 15000 {
+			return errors.New("harga tawaran borongan harus di antara 5000 hingga 15000")
+		}
+	}
+
 	if price > product.Price {
 		return errors.New("harga tawaran tidak boleh melebihi harga asli produk")
 	}

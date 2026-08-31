@@ -27,6 +27,7 @@ var (
 	ErrCannotRespondOwnOffer = errors.New("tidak bisa merespon tawaran sendiri")
 	ErrCannotOfferOnFreeItem = errors.New("tidak bisa menawar harga pada barang hibah/gratis")
 	ErrOfferPriceRequired    = errors.New("offer_price wajib diisi untuk tipe pesan OFFER")
+	ErrInvalidOfferPrice     = errors.New("harga tawaran tidak valid")
 )
 
 type ILapakAdapter interface {

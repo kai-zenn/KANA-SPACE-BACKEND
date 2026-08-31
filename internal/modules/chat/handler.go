@@ -13,7 +13,7 @@ func writeChatError(c *gin.Context, err error) {
 	case errors.Is(err, ErrNotParticipant), errors.Is(err, ErrCannotRespondOwnOffer), errors.Is(err, ErrCannotChatOwnProduct):
 		c.JSON(http.StatusForbidden, gin.H{"status": false, "message": err.Error()})
 	case errors.Is(err, ErrOfferNotFound), errors.Is(err, ErrOfferNotPending),
-		errors.Is(err, ErrCannotOfferOnFreeItem), errors.Is(err, ErrOfferPriceRequired):
+		errors.Is(err, ErrCannotOfferOnFreeItem), errors.Is(err, ErrOfferPriceRequired), errors.Is(err, ErrInvalidOfferPrice):
 		c.JSON(http.StatusBadRequest, gin.H{"status": false, "message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": err.Error()})
