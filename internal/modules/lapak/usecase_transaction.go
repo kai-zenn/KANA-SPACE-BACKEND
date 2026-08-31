@@ -20,6 +20,8 @@ var (
 	ErrUserFrozen = errors.New("akun sedang dibekukan dari klaim Rp0")
 	ErrOfferNotAccepted = errors.New("offer belum di-accept penjual")
 	ErrNotOfferOwner = errors.New("bukan pemilik offer ini")
+	ErrProductLocked = errors.New("Produk sudah di Checkout (locked)")
+	ErrOfferRejected = errors.New("offer sudah di-reject oleh penjual")
 )
 
 const selfPickupRadiusMeters = 4000
@@ -348,6 +350,9 @@ func (tu *TransactionUseCase) CheckoutFromOffer(ctx context.Context, offerID, bu
 	product, err := tu.pr.FindByID(ctx, offer.ProductID)
 	if err != nil {
 		return nil, err
+	}
+	if product.Status == ProductStatusLocked {
+		return nil, ErrProductLocked
 	}
 	if product.Status != ProductStatusAvailable {
 		return nil, ErrProductNotAvailable

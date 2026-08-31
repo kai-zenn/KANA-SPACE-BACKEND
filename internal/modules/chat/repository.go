@@ -78,13 +78,13 @@ func (mr *MessageRepository) CreateMessage(ctx context.Context, message *Message
 func (mr *MessageRepository) FindByConversationID(ctx context.Context, conversationID uuid.UUID, cursor time.Time, limit int) ([]Message, error) {
 	var messages []Message
 	
-	db := mr.db.WithContext(ctx).Where("conversation_id ?", conversationID).Order("created_at desc").Limit(limit)
+	db := mr.db.WithContext(ctx).Where("conversation_id = ?", conversationID)
 	
 	if !cursor.IsZero() {
 		db = db.Where("created_at < ?", cursor)
 	}
 	
-	err := db.Find(&messages).Error
+	err := db.Order("created_at DESC").Limit(limit).Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}

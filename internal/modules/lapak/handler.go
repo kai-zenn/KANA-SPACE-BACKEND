@@ -12,8 +12,18 @@ func writeProductError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrOnlySellerCanListProduct), errors.Is(err, ErrProductForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-	case errors.Is(err, ErrInvalidPriceRange), errors.Is(err, ErrListingTypeMismatch), errors.Is(err, ErrCategoryMustBeSubcategory):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, ErrTransactionForbidden),
+			errors.Is(err, ErrUserFrozen),
+			errors.Is(err, ErrNotOfferOwner):
+		c.JSON(http.StatusForbidden, gin.H{"status": false, "message": err.Error()})
+	case errors.Is(err, ErrInvalidPriceRange),
+		  errors.Is(err, ErrListingTypeMismatch),
+			errors.Is(err, ErrCategoryMustBeSubcategory),
+			errors.Is(err, ErrProductLocked),
+			errors.Is(err, ErrOfferRejected),
+			errors.Is(err, ErrOfferNotAccepted),
+			errors.Is(err, ErrProductNotAvailable):
+		c.JSON(http.StatusBadRequest, gin.H{"status": false, "message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
@@ -460,10 +470,7 @@ func (h *handler) CheckoutFromOffer(ctx *gin.Context) {
 
 	res, err := h.transactionUsecase.CheckoutFromOffer(ctx.Request.Context(), req.OfferID, userID, req.BuyerLat, req.BuyerLng)
 	if err != nil {
-    ctx.JSON(http.StatusInternalServerError, gin.H{
-      "status": false,
-      "message": "Penawaran Ditolak",
-    })
+		writeProductError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{

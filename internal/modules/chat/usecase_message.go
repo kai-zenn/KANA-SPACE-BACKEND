@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,7 +85,7 @@ func (mu *MessageUseCase) SendMessage(ctx context.Context, conversationID uuid.U
 			return nil, ErrCannotOfferOnFreeItem
 		}
 		if err := mu.la.ValidateOfferPrice(ctx, conv.ProductID, *req.OfferPrice); err != nil {
-			return nil, err
+			return nil, ErrInvalidOfferPrice
 		}
 	}
 
@@ -127,11 +128,12 @@ func (mu *MessageUseCase) GetMessages(ctx context.Context, conversationID, reque
 
 	var cursor time.Time
 	if param.Cursor != "" {
-    var err error
-    cursor, err = time.Parse(time.RFC3339, param.Cursor)
-    if err != nil {
-      return nil, err
-    }
+	  cleanCursor := strings.ReplaceAll(param.Cursor, " ", "+")
+		var err error
+		cursor, err = time.Parse(time.RFC3339, cleanCursor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	messages, err := mu.mr.FindByConversationID(ctx, conversationID, cursor, limit)
