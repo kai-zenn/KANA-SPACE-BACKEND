@@ -1,0 +1,43 @@
+services:
+  # Database PostgreSQL
+  postgres:
+    image: postgres:17-alpine
+    container_name: kana_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:      # cek apakah postgres siap
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Aplikasi
+  app:
+    build: .
+    container_name: kana_app
+    ports:
+      - "9090:9090"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: kana_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: 7d
+    volumes:
+      - ./uploads:/root/uploads          # mount folder uploads
+      - ./.env:/root/.env                # mount file .env ke container
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

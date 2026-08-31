@@ -1,0 +1,9 @@
+# .dockerignore
+tmp/
+uploads/
+*.log
+*.tmp
+.git/
+.gitignore
+.air.toml
+README.md
