@@ -1,6 +1,7 @@
 package lapak
 
 import (
+	"KANA-SPACE-BACKEND/internal/pkgs/geo"
 	"context"
 	"errors"
 	"time"
@@ -22,6 +23,8 @@ type IProductRepository interface {
 	UpdateProduct(ctx context.Context, product *Product) error
 	// UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error
 	DeleteProduct(ctx context.Context, productID uuid.UUID) error
+	FindAvailableRawMaterialCandidates(ctx context.Context, lat, lng, radiusMeters float64) ([]ProductCandidate, error)
+	FindNearby(ctx context.Context, params NearbyParams) ([]Product, error)
 }
 
 type ITransactionRepository interface {
@@ -151,6 +154,81 @@ func (pr *ProductRepository) DeleteProduct(ctx context.Context, productID uuid.U
   }
 
   return nil
+}
+
+func (pr *ProductRepository) FindAvailableRawMaterialCandidates(
+	ctx context.Context, lat, lng, radiusMeters float64,
+) ([]ProductCandidate, error) {
+	
+	minLat, maxLat, minLng, maxLng := geo.BoundingBox(lat, lng, radiusMeters)
+	var candidates []ProductCandidate
+	
+	err := pr.db.WithContext(ctx).Raw(`
+		SELECT
+			products.id,
+			products.title,
+			products.description,
+			products.embedding,
+			(
+				6371000 * 2 * asin(
+					sqrt(
+						LEAST(1,
+							power(sin(radians(latitude - ?) / 2), 2) +
+							cos(radians(?)) * cos(radians(latitude)) *
+							power(sin(radians(longitude - ?) / 2), 2)
+						)
+					)
+				)
+			) AS distance_meters
+		FROM products
+		INNER JOIN categories ON categories.id = products.category_id
+		WHERE products.status = 'AVAILABLE'
+		  AND categories.branch = 'RAW_MATERIAL' 
+		  AND products.embedding IS NOT NULL
+		  AND products.latitude BETWEEN ? AND ? 
+		  AND products.longitude BETWEEN ? AND ?
+		HAVING distance_meters <= ?
+		ORDER BY distance_meters ASC
+		LIMIT 50
+	`, lat, lat, lng, minLat, maxLat, minLng, maxLng, radiusMeters).Scan(&candidates).Error
+
+	return candidates, err
+}
+
+func (pr *ProductRepository) FindNearby(ctx context.Context, params NearbyParams) ([]Product, error) {
+	minLat, maxLat, minLng, maxLng := geo.BoundingBox(params.Lat, params.Lng, params.RadiusMeters)
+
+	const query = `
+		SELECT * FROM (
+			SELECT products.*,
+				6371000 * 2 * asin(
+					sqrt(
+						LEAST(1,
+							power(sin(radians(latitude - ?) / 2), 2) +
+							cos(radians(?)) * cos(radians(latitude)) *
+							power(sin(radians(longitude - ?) / 2), 2)
+						)
+					)
+				) AS distance_meters
+			FROM products
+			WHERE status = 'AVAILABLE'
+			  AND latitude BETWEEN ? AND ? 
+			  AND longitude BETWEEN ? AND ?
+		) nearby
+		WHERE distance_meters <= ? 
+		ORDER BY distance_meters ASC
+		LIMIT ? OFFSET ?;
+	`
+
+	var products []Product
+	err := pr.db.WithContext(ctx).Raw(query,
+		params.Lat, params.Lat, params.Lng,
+		minLat, maxLat, minLng, maxLng,
+		params.RadiusMeters,
+		params.Limit, params.Offset,
+	).Scan(&products).Error
+
+	return products, err
 }
 
 // == Transaction Repository ==

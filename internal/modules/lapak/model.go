@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CategoryResponse struct {
@@ -57,6 +58,9 @@ type ProductListQueryParam struct {
 	MaxPrice   *int   `form:"max_price"`
 	Cursor     string `form:"cursor"`
 	Limit      int    `form:"limit"`
+	Lat          *float64 `form:"lat"`
+	Lng          *float64 `form:"lng"`
+	RadiusMeters *float64 `form:"radius_meters"`
 }
 
 type ProductListResponse struct {
@@ -97,4 +101,20 @@ type CheckoutFromOfferRequest struct {
 	OfferID  uuid.UUID `json:"offer_id" binding:"required"`
 	BuyerLat float64   `json:"buyer_lat" binding:"required"`
 	BuyerLng float64   `json:"buyer_lng" binding:"required"`
+}
+
+type NearbyParams struct {
+  Lat          float64 `form:"lat"`
+  Lng          float64 `form:"lng"`
+  RadiusMeters float64 `form:"radius_meters"`
+  Limit        int     `form:"limit"`
+  Offset       int     `form:"offset"`
+}
+
+type ProductCandidate struct {
+	ID             uuid.UUID       `json:"listing_id"`
+	Title          string          `json:"title"`
+	Description    string          `json:"text"`
+	Embedding      pgtype.FlatArray[float64] `json:"embedding"`
+	DistanceMeters float64         `json:"distance_meters"`
 }
