@@ -129,6 +129,7 @@ func (r *Rest) MountEndPoint() {
 	lapakGroup.GET("/products", lapakHandler.GetProductList)
 	lapakGroup.GET("products/:id", lapakHandler.GetProductByID)
 	lapakGroup.GET("/categories", lapakHandler.GetCategories)
+	lapakGroup.GET("/products/nearby", lapakHandler.GetProductsNearby)
 
 	// Protected / Authenticated endpoints
 	lapakGroup.Use(middlewares.Authenticate(r.jwtAuth))

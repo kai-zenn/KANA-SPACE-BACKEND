@@ -125,6 +125,41 @@ func (h *handler) GetProductList(ctx *gin.Context) {
   }) 
 }
 
+func (h *handler) GetProductsNearby(ctx *gin.Context) {
+  var param ProductListQueryParam
+  if err := ctx.ShouldBindQuery(&param); err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status":  false,
+      "message": "Gagal mengambil produk: " + err.Error(),
+    })
+    return
+  }
+
+  if param.Lat == nil || param.Lng == nil || param.RadiusMeters == nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status":  false,
+      "message": "Parameter lat, lng, dan radius_meters wajib diisi",
+    })
+    return
+  }
+
+  res, err := h.productUsecase.GetProductsNearby(ctx.Request.Context(), param)
+  if err != nil {
+    ctx.JSON(http.StatusBadRequest, gin.H{
+      "status":  false,
+      "message": "Gagal mengambil produk: " + err.Error(),
+    })
+    return
+  }
+
+  ctx.JSON(http.StatusOK, gin.H{
+    "status":      true,
+    "message":     "Produk berhasil diambil",
+    "products":    res.Products,
+    "next_cursor": res.NextCursor,
+  })
+}
+
 func (h *handler) GetProductByID(ctx *gin.Context) {
   productIDstr := ctx.Param("id")
   productID, err := uuid.Parse(productIDstr)

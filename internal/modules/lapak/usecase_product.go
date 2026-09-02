@@ -41,6 +41,7 @@ type IProductUseCase interface {
 	GetProductList(ctx context.Context, param ProductListQueryParam) (*ProductListResponse, error)
 	UpdateProduct(ctx context.Context, req UpdateProductRequest) (*ProductResponse, error)
 	DeleteProduct(ctx context.Context, productID, requesterID uuid.UUID, requesterRole string) error
+	GetProductsNearby(ctx context.Context, param ProductListQueryParam) (*ProductListResponse, error)
 }
 
 type ProductUseCase struct {
@@ -254,7 +255,55 @@ func (pu *ProductUseCase) GetProductList(ctx context.Context, param ProductListQ
   }, nil
 }
 
-func (pu *ProductUseCase) UpdateProduct(ctx context.Context, req UpdateProductRequest) (*ProductResponse, error) {
+func (pu *ProductUseCase) GetProductsNearby(ctx context.Context, param ProductListQueryParam) (*ProductListResponse, error) {
+  if param.Lat == nil || param.Lng == nil || param.RadiusMeters == nil {
+    return nil, errors.New("parameter lat, lng, dan radius_meters wajib diisi")
+  }
+
+  limit := param.Limit
+  if limit <= 0 || limit > 20 {
+    limit = 15
+  }
+
+  products, err := pu.pr.FindNearby(ctx, NearbyParams{
+    Lat:          *param.Lat,
+    Lng:          *param.Lng,
+    RadiusMeters: *param.RadiusMeters,
+    Limit:        limit,
+    Offset:       0, // support offset nanti kalo mau
+  })
+  if err != nil {
+    return nil, err
+  }
+
+  response := make([]ProductResponse, len(products))
+  for i, p := range products {
+    photoURLs := make([]string, len(p.Images))
+    for j, img := range p.Images {
+      photoURLs[j] = img.URL
+    }
+    response[i] = ProductResponse{
+      ID:                 p.ID,
+      Seller:             ToProductSeller(p.User),
+      Title:              p.Title,
+      Description:        p.Description,
+      Category:           ToCategoryResponse(p.Category),
+      ListingType:        p.ListingType,
+      Price:              p.Price,
+      Stock:              p.Stock,
+      SelfDeclarationTag: p.SelfDeclarationTag,
+      Status:             p.Status,
+      PhotoURLs:          photoURLs,
+      CreatedAt:          p.CreatedAt,
+    }
+  }
+  return &ProductListResponse{
+    Products:   response,
+    NextCursor: nil,
+  }, nil
+}
+
+func (pu *ProductUseCase) UpdateProduct(ctx context.Context, req UpdateProductRequest) (*ProductResponse, error){
  	product, err := pu.pr.FindByID(ctx, req.ProductID)
 	if err != nil {
 		return nil, err
