@@ -3,7 +3,7 @@ package lapak
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"math"
 	"time"
 
@@ -110,6 +110,7 @@ type ITransactionUseCase interface {
 	CompleteManual(ctx context.Context, transactionID, requesterID uuid.UUID) error
 	CancelTransaction(ctx context.Context, transactionID, requesterID uuid.UUID) error
 	CheckoutFromOffer(ctx context.Context, offerID, buyerID uuid.UUID, buyerLat, buyerLng float64) (*TransactionResponse, error)
+	ExpireStaleTransactions(ctx context.Context) (int, error)
 }
 
 type TransactionUseCase struct {
@@ -232,26 +233,25 @@ func (tu *TransactionUseCase) ConfirmTransaction(ctx context.Context, transactio
 }
 
 func (tu *TransactionUseCase) CompleteViaQR(ctx context.Context, qrCode string, scannerID uuid.UUID) error {
-	tx, err := tu.tr.FindByQRCode(ctx, qrCode)
-	if err != nil {
-		return err
-	}
-	if tx.Product.UserID != scannerID {
-		return ErrTransactionForbidden
-	}
-	if tx.Status != TransactionStatusLocked {
-		return ErrInvalidTransactionStatus
-	}
+  tx, err := tu.tr.FindByQRCode(ctx, qrCode)
+  if err != nil {
+    return err
+  }
 
-	now := time.Now()
-	tx.Status = TransactionStatusCompleted
-	tx.CompletedAt = &now
-	if err := tu.tr.UpdateTransaction(ctx, tx); err != nil {
-		return err
-	}
+  if tx.Product.UserID != scannerID {
+    return ErrTransactionForbidden
+  }
+  
+  if tx.Status != TransactionStatusLocked {
+    return ErrInvalidTransactionStatus
+  }
 
-	tx.Product.Status = ProductStatusCompleted
-	return tu.pr.UpdateProduct(ctx, &tx.Product)
+  if err := tu.tr.CompleteIfLocked(ctx, tx.ID); err != nil {
+    return err
+  }
+
+  tx.Product.Status = ProductStatusCompleted
+  return tu.pr.UpdateProduct(ctx, &tx.Product)
 }
 
 func (tu *TransactionUseCase) CompleteManual(ctx context.Context, transactionID, requesterID uuid.UUID) error {
@@ -297,42 +297,12 @@ func (tu *TransactionUseCase) CancelTransaction(ctx context.Context, transaction
 	return tu.pr.UpdateProduct(ctx, &tx.Product)
 }
 
-func (tu *TransactionUseCase) ExpireStaleTransactions(ctx context.Context) error {
-	expired, err := tu.tr.FindExpiredLocked(ctx, time.Now())
-	if err != nil {
-		return err
-	}
-
-	for _, tx := range expired {
-		tx.Status = TransactionStatusExpired
-		if err := tu.tr.UpdateTransaction(ctx, &tx); err != nil {
-					log.Printf("Gagal update status transaksi %s: %v\n", tx.ID, err)
-				}
-
-		tx.Product.Status = ProductStatusAvailable
-		if err := tu.pr.UpdateProduct(ctx, &tx.Product); err != nil {
-					log.Printf("Gagal mengembalikan status produk %s: %v\n", tx.Product.ID, err)
-				}
-
-		buyer, err := tu.ur.GetByID(ctx, tx.BuyerID)
-		if err != nil {
-			continue
-		}
-		buyer.StrikeCount++
-		if buyer.StrikeCount >= 3 {
-			freezeUntil := time.Now().Add(30 * 24 * time.Hour)
-			buyer.ClaimFreezeUntil = &freezeUntil
-		}
-		errUpdate := tu.ur.UpdateUser(ctx, buyer.ID, map[string]interface{}{
-					"strike_count":       buyer.StrikeCount,
-					"claim_freeze_until": buyer.ClaimFreezeUntil,
-				})
-		
-		if errUpdate != nil {
-			log.Printf("Gagal update strike user %s: %v\n", buyer.ID, errUpdate)
-		}
-	}
-	return nil
+func (tu *TransactionUseCase) ExpireStaleTransactions(ctx context.Context) (int, error) {
+  expiredIDs, err := tu.tr.BulkExpireLocked(ctx)
+  if err != nil {
+      return 0, fmt.Errorf("bulk expire locked transactions: %w", err)
+  }
+  return len(expiredIDs), nil
 }
 
 func (tu *TransactionUseCase) CheckoutFromOffer(ctx context.Context, offerID, buyerID uuid.UUID, buyerLat, buyerLng float64) (*TransactionResponse, error) {

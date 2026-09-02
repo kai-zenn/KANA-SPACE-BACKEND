@@ -2,6 +2,7 @@ package lapak
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,6 +30,8 @@ type ITransactionRepository interface {
 	FindByQRCode(ctx context.Context, qrCode string) (*Transaction, error)
 	FindExpiredLocked(ctx context.Context, now time.Time) ([]Transaction, error) // buat cron
 	UpdateTransaction(ctx context.Context, tx *Transaction) error
+	BulkExpireLocked(ctx context.Context) ([]uuid.UUID, error)
+  CompleteIfLocked(ctx context.Context, id uuid.UUID) error
 }
 
 
@@ -204,4 +207,44 @@ func (tr *TransactionRepository) UpdateTransaction(ctx context.Context, tx *Tran
   }
   
   return nil
+}
+
+func (tr *TransactionRepository) CompleteIfLocked(ctx context.Context, id uuid.UUID) error {
+    now := time.Now()
+    result := tr.db.WithContext(ctx).Model(&Transaction{}).
+        Where("id = ? AND status = ?", id, TransactionStatusLocked).
+        Updates(map[string]interface{}{
+            "status":       TransactionStatusCompleted, 
+            "completed_at": now,
+        })
+
+    if result.Error != nil {
+        return result.Error
+    }
+    if result.RowsAffected == 0 {
+        return errors.New("transaksi sudah tidak valid (kadaluarsa atau sudah diproses)")
+    }
+    return nil
+}
+
+func (tr *TransactionRepository) BulkExpireLocked(ctx context.Context) ([]uuid.UUID, error) {
+    const query = `
+        WITH expired AS (
+            UPDATE transactions
+            SET status = 'EXPIRED', updated_at = NOW()
+            WHERE status = 'LOCKED'
+              AND expires_at <= NOW()
+            RETURNING id, product_id
+        ),
+        released AS (
+            UPDATE products
+            SET status = 'AVAILABLE', updated_at = NOW()
+            FROM expired
+            WHERE products.id = expired.product_id
+        )
+        SELECT id FROM expired;
+    `
+    var ids []uuid.UUID
+    err := tr.db.WithContext(ctx).Raw(query).Scan(&ids).Error
+    return ids, err
 }
