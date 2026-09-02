@@ -10,8 +10,10 @@ import (
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
+	"KANA-SPACE-BACKEND/internal/workers"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +25,7 @@ type Rest struct {
   storage storage.Interface
   googleVerifier user.GoogleVerifierInterface
   nlp space.NLPClientInterface
+  Scheduler *cron.Cron
 }
 
 func NewRest(router *gin.Engine, 
@@ -112,6 +115,11 @@ func (r *Rest) MountEndPoint() {
 	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
 	transactionUseCase := lapak.NewTransactionUseCase(lapakTransactionR, lapakProductR, userRepo, chatAdapter)
+	
+	autoCancelWorker := workers.NewAutoCancelWorker(transactionUseCase)
+	scheduler := workers.NewScheduler(autoCancelWorker)
+	scheduler.Start()
+	r.Scheduler = scheduler
 	
 	lapakHandler := lapak.NewLapakHandler(productUseCase, categoryUseCase, transactionUseCase)
 

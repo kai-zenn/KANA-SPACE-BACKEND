@@ -10,9 +10,12 @@ import (
 	"KANA-SPACE-BACKEND/internal/rest"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -83,5 +86,23 @@ func main() {
  app.MountEndPoint()
  
  fmt.Println("\n  ➜  Local: http://localhost:9090/")
- app.Serve(":9090")
+ go func() {
+  if err := router.Run(":9090"); err != nil && err != http.ErrServerClosed {
+      log.Fatalf("Gagal menjalankan server: %v", err)
+    }
+ }()
+ 
+ quit := make(chan os.Signal, 1)
+ signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+ <-quit
+ 
+ log.Println("Shutting down server...")
+ 
+ // Stop scheduler (tunggu job selesai)
+ if app.Scheduler != nil {
+     ctx := app.Scheduler.Stop()
+     <-ctx.Done()
+ }
+ 
+ log.Println("Server stopped.")
 }
