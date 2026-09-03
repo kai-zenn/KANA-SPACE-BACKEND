@@ -5,13 +5,17 @@ import (
 	"KANA-SPACE-BACKEND/internal/middlewares"
 	"KANA-SPACE-BACKEND/internal/modules/chat"
 	"KANA-SPACE-BACKEND/internal/modules/lapak"
+	"KANA-SPACE-BACKEND/internal/modules/notification"
 	"KANA-SPACE-BACKEND/internal/modules/space"
 	"KANA-SPACE-BACKEND/internal/modules/user"
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
+	"KANA-SPACE-BACKEND/internal/pkgs/fcm"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"KANA-SPACE-BACKEND/internal/workers"
+	"log"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
@@ -25,6 +29,7 @@ type Rest struct {
   storage storage.Interface
   googleVerifier user.GoogleVerifierInterface
   nlp space.NLPClientInterface
+  FirebaseApp *firebase.App 
   Scheduler *cron.Cron
 }
 
@@ -34,7 +39,8 @@ func NewRest(router *gin.Engine,
   bcrypt bcrypt.Interface,
   storage storage.Interface,
   googleVerifier user.GoogleVerifierInterface,
-  nlp space.NLPClientInterface) *Rest {
+  nlp space.NLPClientInterface,
+  firebaseApp *firebase.App,) *Rest {
   return &Rest{
     router: router,
     db: db,
@@ -43,6 +49,7 @@ func NewRest(router *gin.Engine,
     storage: storage,
     googleVerifier: googleVerifier,
     nlp: nlp,
+    FirebaseApp: firebaseApp,
   }
 }
 
@@ -173,6 +180,20 @@ func (r *Rest) MountEndPoint() {
 		// Endpoint khusus merespon Offer (Accept/Reject)
 		chatGroup.POST("/messages/:id/respond-offer", chatHandler.RespondToOffer)
 	}
+
+	// -- Notification Module (Fitur 2)
+	fcmClient, err := fcm.NewClient(r.FirebaseApp)
+	if err != nil {
+		log.Fatalf("gagal inisialisasi fcm client: %v", err)
+	}
+
+	notifRepo := notification.NewNotificationRepository(r.db)
+	deviceRepo := notification.NewUserDeviceRepository(r.db)
+	
+	notifUseCase := notification.NewNotificationUseCase(notifRepo, deviceRepo, fcmClient)
+	notifHandler := notification.NewNotificationHandler(notifUseCase)
+
+	
 } 
 
 func (r *Rest) Serve(port string) {

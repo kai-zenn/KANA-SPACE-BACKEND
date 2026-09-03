@@ -17,6 +17,7 @@ type Config struct {
 	JWTExpiry  string    `mapstructure:"JWT_EXPIRY"`
 	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	FirebaseCredentialsPath string `mapstructure:"FIREBASE_CREDENTIALS_PATH"`
 }
 
 func LoadConf() (*Config, error)  {

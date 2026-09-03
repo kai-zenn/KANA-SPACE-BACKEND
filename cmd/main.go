@@ -8,6 +8,7 @@ import (
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"KANA-SPACE-BACKEND/internal/rest"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +19,9 @@ import (
 	"syscall"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -81,8 +84,17 @@ func main() {
 
  var bcryptServic = bcrypt.NewCryptoBcrypt()
 
+ firebaseCredPath := conf.FirebaseCredentialsPath
+ 
+ opt := option.WithCredentialsFile(firebaseCredPath)
+ firebaseApp, err := firebase.NewApp(context.Background(), nil, opt)
+ if err != nil {
+	log.Fatalf("gagal inisialisasi firebase app: %v", err)
+ }
+
  router := gin.Default()
- app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nil)
+ app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nil, firebaseApp)
+ app.FirebaseApp = firebaseApp 
  app.MountEndPoint()
  
  fmt.Println("\n  ➜  Local: http://localhost:9090/")
