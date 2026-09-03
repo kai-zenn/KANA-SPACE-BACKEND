@@ -69,7 +69,18 @@ func (r *Rest) MountEndPoint() {
     authGroup.POST("/login", userHandler.Login)
     authGroup.POST("/google", userHandler.LoginWithGoogle)
   }
-  
+
+  // Initialize FCM client
+  fcmClient, err := fcm.NewClient(r.FirebaseApp)
+  if err != nil {
+     log.Fatalf("gagal inisialisasi fcm client: %v", err)
+  }
+
+  notifRepo := notification.NewNotificationRepository(r.db)
+  deviceRepo := notification.NewUserDeviceRepository(r.db)
+  notifUseCase := notification.NewNotificationUseCase(notifRepo, deviceRepo, fcmClient)
+  notifHandler := notification.NewNotificationHandler(notifUseCase)
+
   userGroup := api.Group("/user")
   userGroup.Use(middlewares.Authenticate(r.jwtAuth))
   {
@@ -80,6 +91,7 @@ func (r *Rest) MountEndPoint() {
     userGroup.POST("/upgrade", userHandler.UpgradeToSeller)
     userGroup.POST("/:id/follow", userHandler.FollowUsers)
     userGroup.POST("/:id/unfollow", userHandler.UnfollowUser)
+    userGroup.POST("/devices", notifHandler.RegisterDevice)
   }
 
   // -- Space Module
@@ -182,18 +194,12 @@ func (r *Rest) MountEndPoint() {
 	}
 
 	// -- Notification Module (Fitur 2)
-	fcmClient, err := fcm.NewClient(r.FirebaseApp)
-	if err != nil {
-		log.Fatalf("gagal inisialisasi fcm client: %v", err)
-	}
-
-	notifRepo := notification.NewNotificationRepository(r.db)
-	deviceRepo := notification.NewUserDeviceRepository(r.db)
-	
-	notifUseCase := notification.NewNotificationUseCase(notifRepo, deviceRepo, fcmClient)
-	notifHandler := notification.NewNotificationHandler(notifUseCase)
-
-	
+	notifGroup := api.Group("/notifications")
+	notifGroup.Use(middlewares.Authenticate(r.jwtAuth))
+	{
+		notifGroup.GET("", notifHandler.ListMyNotifications)
+		notifGroup.PATCH("/:id/read", notifHandler.MarkAsRead)
+	}	
 } 
 
 func (r *Rest) Serve(port string) {
