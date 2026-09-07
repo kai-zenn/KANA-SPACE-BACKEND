@@ -2,32 +2,30 @@ package space
 
 import (
 	"KANA-SPACE-BACKEND/internal/modules/user"
+	"KANA-SPACE-BACKEND/internal/pkgs/nlpclient"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-
 type IPostUseCase interface {
   NewPost(ctx context.Context, req CreatePostRequest) (*PostResponse, error)
   FindPostByID(ctx context.Context, postID uuid.UUID) (*PostResponse, error)
   GetFeed(ctx context.Context, viewerID uuid.UUID, req FeedQueryParam) (*FeedResponse, error)
-  // UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error
   DeletePost(ctx context.Context, postID uuid.UUID, requesterID uuid.UUID, requesterRole string) error
 }
 
-type NLPClientInterface interface {
-  Embed(ctx context.Context, text string) (embedding []float64, model string, err error)
-}
+
 
 type PostUseCase struct {
   pr IPostRepository
   cr ICommentRepository
   lr ILikeRepository
-  nlp NLPClientInterface
+  nlp nlpclient.Client
   ur  user.IUserRepository
   storage storage.Interface
 }
@@ -40,7 +38,7 @@ func ToPostAuthor(user user.User) PostAuthor {
 	}
 }
 
-func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp NLPClientInterface, ur user.IUserRepository, storage storage.Interface) IPostUseCase {
+func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp nlpclient.Client, ur user.IUserRepository, storage storage.Interface) IPostUseCase {
   return &PostUseCase{
     pr: pr,
     cr: cr,
@@ -48,6 +46,27 @@ func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepositor
     nlp: nlp,
     ur: ur,
     storage: storage,
+  }
+}
+
+func (pu *PostUseCase) embedPostAsync(postID uuid.UUID, content string) {
+  defer func() {
+    if r := recover(); r != nil {
+      log.Printf("[Post] panic recovered saat embed post %s: %v", postID, r)
+    }
+  }()
+
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+
+  resp, err := pu.nlp.Embed(ctx, content)
+  if err != nil {
+    log.Printf("[Post] embed gagal untuk post %s: %v", postID, err)
+    return
+  }
+
+  if err := pu.pr.UpdateEmbedding(ctx, postID, resp.Embedding, resp.Model); err != nil {
+    log.Printf("[Post] gagal simpan embedding post %s: %v", postID, err)
   }
 }
 
@@ -100,15 +119,14 @@ func (pu *PostUseCase) NewPost(ctx context.Context, req CreatePostRequest) (*Pos
     post.RequestStatus = &status
   }
   
-
   err = pu.pr.CreatePost(ctx, post)
   if err != nil {
     return nil, err
   }
 
-  // if req.Tag == "CariMaterial" && pu.nlp != nil {
-  //   go pu.nlp.EmbedPostAsync(post.ID, post.Content)
-  // }
+  if req.Tag == "CariMaterial" && pu.nlp != nil {
+    go pu.embedPostAsync(post.ID, post.Content)
+  }
 
   return &PostResponse{
     ID:            post.ID,

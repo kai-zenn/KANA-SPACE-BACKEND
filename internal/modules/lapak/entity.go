@@ -116,3 +116,17 @@ type Transaction struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type Match struct {
+	ID            uuid.UUID  `gorm:"primary_key;default:gen_random_uuid()"`
+	RequestID     uuid.UUID  `gorm:"type:uuid;not null;index"` // ID post #CariMaterial
+	ListingID     uuid.UUID  `gorm:"type:uuid;not null;index"` // ID produk yang match
+	DistanceMeters float64
+	BM25Score     float64
+	SemanticScore float64
+	FinalScore    float64
+	Rank          int
+	Status        string     `gorm:"type:varchar(20);not null;default:'SUGGESTED'"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}

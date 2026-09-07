@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
 
 	"KANA-SPACE-BACKEND/internal/modules/user"
+	"KANA-SPACE-BACKEND/internal/pkgs/nlpclient"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 )
 
@@ -22,10 +24,6 @@ var (
   ErrSelfDeclarationRequired = errors.New("self declaration tag wajib buat bahan baku")
   ErrPriceMustBePositive     = errors.New("harga harus lebih dari 0")
 )
-
-type NLPClientInterface interface {
-	Embed(ctx context.Context, text string) (embedding []float64, model string, err error)
-}
 
 func ToProductSeller(u user.User) ProductSeller {
 	return ProductSeller{ID: u.ID, Username: u.Username, ProfilePhotoLink: u.ProfilePhotoLink}
@@ -48,14 +46,34 @@ type ProductUseCase struct {
 	pr      IProductRepository
 	cr      ICategoryRepository
 	ur      user.IUserRepository
-	nlp     NLPClientInterface
+	nlp     nlpclient.Client
 	storage storage.Interface
 }
 
-func NewProductUseCase(pr IProductRepository, cr ICategoryRepository, ur user.IUserRepository, nlp NLPClientInterface, storage storage.Interface) IProductUseCase {
+func NewProductUseCase(pr IProductRepository, cr ICategoryRepository, ur user.IUserRepository, nlp nlpclient.Client, storage storage.Interface) IProductUseCase {
 	return &ProductUseCase{pr: pr, cr: cr, ur: ur, nlp: nlp, storage: storage}
 }
 
+func (pu *ProductUseCase) embedProductAsync(productID uuid.UUID, description string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[Product] panic recovered saat embed product %s: %v", productID, r)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resp, err := pu.nlp.Embed(ctx, description)
+  if err != nil {
+    log.Printf("[Product] embed gagal untuk product %s: %v", productID, err)
+    return
+  }
+
+  if err := pu.pr.UpdateEmbedding(ctx, productID, resp.Embedding, resp.Model); err != nil {
+    log.Printf("[Product] gagal simpan embedding product %s: %v", productID, err)
+  }
+}
 
 func (pu *ProductUseCase) NewProduct(ctx context.Context, req CreateProductRequest, requesterRole string) (*ProductResponse, error) {
   if requesterRole != user.RoleSeller && requesterRole != user.RoleAdmin {
@@ -148,6 +166,11 @@ func (pu *ProductUseCase) NewProduct(ctx context.Context, req CreateProductReque
 	if err != nil {
 		return nil, err
 	}
+
+  if category.Branch == CategoryBranchRawMaterial {
+    go pu.embedProductAsync(product.ID, product.Description)
+  }
+
 
 	return &ProductResponse{
 		ID: product.ID, Seller: ToProductSeller(*seller), Title: product.Title,
