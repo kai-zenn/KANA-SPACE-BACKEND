@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,7 @@ type IPostRepository interface {
 	FindFeed(ctx context.Context, tag string, cursor time.Time, limit int) ([]Post, error)
 	UpdateCommentCount(ctx context.Context, postID uuid.UUID, delta int) error
 	UpdateLikeCount(ctx context.Context, postID uuid.UUID, delta int) error
-	// UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error
+	UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error
 	DeletePost(ctx context.Context, postID uuid.UUID) error
 }
 
@@ -102,9 +103,15 @@ func (pr *PostRepository) UpdateLikeCount(ctx context.Context, postID uuid.UUID,
   return nil
 }
 
-// func (pr *PostRepository) UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error {
-  
-// }
+func (pr *PostRepository) UpdateEmbedding(ctx context.Context, postID uuid.UUID, embedding []float64, model string) error {
+  return pr.db.WithContext(ctx).
+    Model(&Post{}).
+    Where("id = ?", postID).
+    Updates(map[string]interface{}{
+      "embedding":       pgtype.FlatArray[float64](embedding),
+      "embedding_model": model,
+    }).Error
+}
 
 func (pr *PostRepository) DeletePost(ctx context.Context, postID uuid.UUID) error {
   err := pr.db.

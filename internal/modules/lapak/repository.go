@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +22,7 @@ type IProductRepository interface {
 	FindByID(ctx context.Context, productID uuid.UUID) (*Product, error)
 	FindList(ctx context.Context, categoryIDs []uuid.UUID, minPrice, maxPrice *int, cursor time.Time, limit int) ([]Product, error)
 	UpdateProduct(ctx context.Context, product *Product) error
-	// UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error
+	UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error
 	DeleteProduct(ctx context.Context, productID uuid.UUID) error
 	FindAvailableRawMaterialCandidates(ctx context.Context, lat, lng, radiusMeters float64) ([]ProductCandidate, error)
 	FindNearby(ctx context.Context, params NearbyParams) ([]Product, error)
@@ -138,9 +139,15 @@ func (pr *ProductRepository) UpdateProduct(ctx context.Context, product *Product
   return nil
 }
 
-// func (pr *ProductRepository) UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error {
-  
-// }
+func (pr *ProductRepository) UpdateEmbedding(ctx context.Context, productID uuid.UUID, embedding []float64, model string) error {
+	return pr.db.WithContext(ctx).
+		Model(&Product{}).
+		Where("id = ?", productID).
+		Updates(map[string]interface{}{
+			"embedding":       pgtype.FlatArray[float64](embedding),
+			"embedding_model": model,
+		}).Error
+}
 
 func (pr *ProductRepository) DeleteProduct(ctx context.Context, productID uuid.UUID) error {
   err := pr.db.
