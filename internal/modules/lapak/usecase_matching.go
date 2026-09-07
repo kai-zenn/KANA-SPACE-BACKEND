@@ -15,6 +15,10 @@ import (
 
 const DefaultMatchRadiusMeters = 20000 // 20km
 
+type IMatchingUseCase interface {
+	ProcessMatchAsync(postID uuid.UUID)
+}
+
 type MatchingUseCase struct {
 	productRepo    IProductRepository
 	postRepo       space.IPostRepository
@@ -156,7 +160,17 @@ func (mu *MatchingUseCase) persistMatches(ctx context.Context, postID uuid.UUID,
 }
 
 func (mu *MatchingUseCase) notifyNoCandidates(ctx context.Context, userID uuid.UUID) {
-	// TODO: kirim notifikasi "belum ada kandidat di sekitar"
+  input := notification.NotifyInput{
+    UserID: userID,
+    Type:   "INFO",
+    Title:  "Belum ada material di sekitar",
+    Body:   "Saat ini belum ada material yang cocok di lokasi Anda. Kami akan memberi tahu jika ada yang baru.",
+    Data:   map[string]string{},
+  }
+  
+  if err := mu.notificationUC.Notify(ctx, input); err != nil {
+    log.Printf("[Matching] gagal kirim notifikasi no-candidates: %v", err)
+  }
 }
 
 func (mu *MatchingUseCase) notifyMatches(ctx context.Context, post *space.Post, matches []Match) {

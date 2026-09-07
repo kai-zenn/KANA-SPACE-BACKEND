@@ -12,14 +12,16 @@ import (
 	"github.com/google/uuid"
 )
 
+type MatchingTrigger interface {
+  ProcessMatchAsync(postID uuid.UUID)
+}
+
 type IPostUseCase interface {
   NewPost(ctx context.Context, req CreatePostRequest) (*PostResponse, error)
   FindPostByID(ctx context.Context, postID uuid.UUID) (*PostResponse, error)
   GetFeed(ctx context.Context, viewerID uuid.UUID, req FeedQueryParam) (*FeedResponse, error)
   DeletePost(ctx context.Context, postID uuid.UUID, requesterID uuid.UUID, requesterRole string) error
 }
-
-
 
 type PostUseCase struct {
   pr IPostRepository
@@ -28,6 +30,7 @@ type PostUseCase struct {
   nlp nlpclient.Client
   ur  user.IUserRepository
   storage storage.Interface
+  matching MatchingTrigger
 }
 
 func ToPostAuthor(user user.User) PostAuthor {
@@ -38,15 +41,16 @@ func ToPostAuthor(user user.User) PostAuthor {
 	}
 }
 
-func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp nlpclient.Client, ur user.IUserRepository, storage storage.Interface) IPostUseCase {
-  return &PostUseCase{
-    pr: pr,
-    cr: cr,
-    lr: lr,
-    nlp: nlp,
-    ur: ur,
-    storage: storage,
-  }
+func NewPostUseCase(pr IPostRepository, cr ICommentRepository, lr ILikeRepository, nlp nlpclient.Client, ur user.IUserRepository, storage storage.Interface, matching MatchingTrigger) IPostUseCase {
+	return &PostUseCase{
+		pr: pr,
+		cr: cr,
+		lr: lr,
+		nlp: nlp,
+		ur: ur,
+		storage: storage,
+		matching: matching,
+	}
 }
 
 func (pu *PostUseCase) embedPostAsync(postID uuid.UUID, content string) {
