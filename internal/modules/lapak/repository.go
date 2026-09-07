@@ -38,6 +38,11 @@ type ITransactionRepository interface {
   CompleteIfLocked(ctx context.Context, id uuid.UUID) error
 }
 
+type IMatchRepository interface {
+  CreateMatches(ctx context.Context, matches []Match) error
+  FindByRequestID(ctx context.Context, requestID uuid.UUID) ([]Match, error)
+}
+
 
 // == Category Repository ==
 type CategoryRepository struct {
@@ -332,4 +337,27 @@ func (tr *TransactionRepository) BulkExpireLocked(ctx context.Context) ([]uuid.U
     var ids []uuid.UUID
     err := tr.db.WithContext(ctx).Raw(query).Scan(&ids).Error
     return ids, err
+}
+
+
+// == Match Repository ==
+type MatchRepository struct {
+  db *gorm.DB
+}
+
+func NewMatchRepository(db *gorm.DB) *MatchRepository {
+  return &MatchRepository{db: db}
+}
+
+func (r *MatchRepository) CreateMatches(ctx context.Context, matches []Match) error {
+  if len(matches) == 0 {
+    return nil
+  }
+  return r.db.WithContext(ctx).Create(&matches).Error
+}
+
+func (r *MatchRepository) FindByRequestID(ctx context.Context, requestID uuid.UUID) ([]Match, error) {
+  var matches []Match
+  err := r.db.WithContext(ctx).Where("request_id = ?", requestID).Find(&matches).Error
+  return matches, err
 }
