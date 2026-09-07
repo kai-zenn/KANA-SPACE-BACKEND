@@ -18,6 +18,8 @@ type Config struct {
 	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	FirebaseCredentialsPath string `mapstructure:"FIREBASE_CREDENTIALS_PATH"`
+	NLPBaseURL string `mapstructure:"NLP_BASE_URL"`
+	NLPAPIKey string `mapstructure:"NLP_API_KEY"`
 }
 
 func LoadConf() (*Config, error)  {

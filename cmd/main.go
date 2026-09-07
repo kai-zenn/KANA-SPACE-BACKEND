@@ -6,6 +6,7 @@ import (
 	"KANA-SPACE-BACKEND/internal/database/seeding"
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
+	"KANA-SPACE-BACKEND/internal/pkgs/nlpclient"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"KANA-SPACE-BACKEND/internal/rest"
 	"context"
@@ -91,9 +92,10 @@ func main() {
  if err != nil {
 	log.Fatalf("gagal inisialisasi firebase app: %v", err)
  }
+ nlpClient := nlpclient.New(conf.NLPBaseURL, conf.NLPAPIKey)
 
  router := gin.Default()
- app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nil, firebaseApp)
+ app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nlpClient, firebaseApp)
  app.FirebaseApp = firebaseApp 
  app.MountEndPoint()
  
