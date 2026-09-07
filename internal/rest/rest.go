@@ -11,6 +11,7 @@ import (
 	"KANA-SPACE-BACKEND/internal/pkgs/bcrypt"
 	"KANA-SPACE-BACKEND/internal/pkgs/fcm"
 	"KANA-SPACE-BACKEND/internal/pkgs/jwt"
+	"KANA-SPACE-BACKEND/internal/pkgs/nlpclient"
 	"KANA-SPACE-BACKEND/internal/pkgs/storage"
 	"KANA-SPACE-BACKEND/internal/workers"
 	"log"
@@ -28,7 +29,7 @@ type Rest struct {
   bcrypt  bcrypt.Interface
   storage storage.Interface
   googleVerifier user.GoogleVerifierInterface
-  nlp space.NLPClientInterface
+  nlp   nlpclient.Client
   FirebaseApp *firebase.App 
   Scheduler *cron.Cron
 }
@@ -39,7 +40,7 @@ func NewRest(router *gin.Engine,
   bcrypt bcrypt.Interface,
   storage storage.Interface,
   googleVerifier user.GoogleVerifierInterface,
-  nlp space.NLPClientInterface,
+  nlp nlpclient.Client,
   firebaseApp *firebase.App,) *Rest {
   return &Rest{
     router: router,
@@ -94,42 +95,17 @@ func (r *Rest) MountEndPoint() {
     userGroup.POST("/devices", notifHandler.RegisterDevice)
   }
 
-  // -- Space Module
-  spacePostR := space.NewPostRepository(r.db)
-  spaceLikeR := space.NewLikeRepository(r.db)
-  spaceCommentR := space.NewCommentRepository(r.db)
-  
-  spacePostUseCase := space.NewPostUseCase(spacePostR, spaceCommentR, spaceLikeR, r.nlp, userRepo, r.storage)
-	spaceLikeUseCase := space.NewLikeUseCase(spaceLikeR, spacePostR)
-	spaceCommentUseCase := space.NewCommentUseCase(spaceCommentR, spacePostR)
-
-	spaceHandler := space.NewSpaceHandler(spacePostUseCase, spaceCommentUseCase, spaceLikeUseCase)
-
-	spaceGroup := api.Group("/space")
-	spaceGroup.Use(middlewares.Authenticate(r.jwtAuth))
-	{
-		spaceGroup.POST("/posts", spaceHandler.CreatePost)       
-		spaceGroup.GET("/posts", spaceHandler.GetFeed)          
-		// spaceGroup.GET("/posts/:id", spaceHandler.FindPostByID)  // GET /api/v1/posts/:id (Detail post)
-		spaceGroup.DELETE("/posts/:id", spaceHandler.DeletePost)
-
-		spaceGroup.POST("/posts/:id/like", spaceHandler.LikePost)     
-		spaceGroup.POST("/posts/:id/unlike", spaceHandler.UnlikePost) 
-
-		spaceGroup.POST("/posts/:id/comments", spaceHandler.CreateComment)    
-		spaceGroup.GET("/posts/:id/comments", spaceHandler.GetComments)  
-		spaceGroup.DELETE("/posts/comments/:comment_id", spaceHandler.DeleteComment) 
-	}
-
 	// -- Lapak Module
 	lapakProductR := lapak.NewProductRepository(r.db)
 	lapakCategoryR := lapak.NewCategoryRepository(r.db)
 	lapakTransactionR := lapak.NewTransactionRepository(r.db)
+	matchRepo := lapak.NewMatchRepository(r.db)
 
 	chatRepo := chat.NewConversationRepository(r.db)
 	messageRepo := chat.NewMessageRepository(r.db)
 
 	chatAdapter := adapters.NewChatAdapter(messageRepo, chatRepo)
+
 	
 	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
@@ -168,6 +144,34 @@ func (r *Rest) MountEndPoint() {
 		// Checkout dari offer
 		lapakGroup.POST("/transactions/checkout-offer", lapakHandler.CheckoutFromOffer)
 	}
+
+ // -- Space Module
+  spacePostR := space.NewPostRepository(r.db)
+  spaceLikeR := space.NewLikeRepository(r.db)
+  spaceCommentR := space.NewCommentRepository(r.db)
+
+  matchingUseCase := lapak.NewMatchingUseCase(lapakProductR, spacePostR, matchRepo, notifUseCase, r.nlp)
+  spacePostUseCase := space.NewPostUseCase(spacePostR, spaceCommentR, spaceLikeR, r.nlp, userRepo, r.storage, matchingUseCase)
+  spaceLikeUseCase := space.NewLikeUseCase(spaceLikeR, spacePostR)
+  spaceCommentUseCase := space.NewCommentUseCase(spaceCommentR, spacePostR)
+
+  spaceHandler := space.NewSpaceHandler(spacePostUseCase, spaceCommentUseCase, spaceLikeUseCase)
+
+  spaceGroup := api.Group("/space")
+  spaceGroup.Use(middlewares.Authenticate(r.jwtAuth))
+  {
+  	spaceGroup.POST("/posts", spaceHandler.CreatePost)       
+  	spaceGroup.GET("/posts", spaceHandler.GetFeed)          
+  	// spaceGroup.GET("/posts/:id", spaceHandler.FindPostByID)  // GET /api/v1/posts/:id (Detail post)
+  	spaceGroup.DELETE("/posts/:id", spaceHandler.DeletePost)
+  
+  	spaceGroup.POST("/posts/:id/like", spaceHandler.LikePost)     
+  	spaceGroup.POST("/posts/:id/unlike", spaceHandler.UnlikePost) 
+  
+  	spaceGroup.POST("/posts/:id/comments", spaceHandler.CreateComment)    
+  	spaceGroup.GET("/posts/:id/comments", spaceHandler.GetComments)  
+  	spaceGroup.DELETE("/posts/comments/:comment_id", spaceHandler.DeleteComment) 
+  }
 
 	// -- Chat & Nego Module
 	lapakAdapter := adapters.NewLapakAdapter(lapakProductR)
