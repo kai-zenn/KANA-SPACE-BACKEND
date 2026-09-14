@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type Client interface {
 	Embed(ctx context.Context, text string) (*EmbedResponse, error)
 	Match(ctx context.Context, req MatchRequest) (*MatchResponse, error)
+	HealthCheck(ctx context.Context) error
 }
 
 type httpClient struct {
@@ -23,10 +25,10 @@ type httpClient struct {
 
 func New(baseURL, apiKey string) Client {
 	return &httpClient{
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
 		httpClient: &http.Client{
-			Timeout: 8 * time.Second, 
+			Timeout: 15 * time.Second, 
 		},
 	}
 }
@@ -97,4 +99,18 @@ func (c *httpClient) Match(ctx context.Context, req MatchRequest) (*MatchRespons
 		return nil, fmt.Errorf("decode match response: %w", err)
 	}
 	return &result, nil
+}
+
+func (c *httpClient) HealthCheck(ctx context.Context) error {
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
+    if err != nil { return err }
+    resp, err := c.httpClient.Do(req)
+    if err != nil { return fmt.Errorf("nlp unreachable (health): %w", err) }
+    defer resp.Body.Close()
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("nlp health gagal: %d", resp.StatusCode)
+    }
+    return nil
 }
