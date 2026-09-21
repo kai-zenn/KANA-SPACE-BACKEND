@@ -71,6 +71,12 @@ func (pu *PostUseCase) embedPostAsync(postID uuid.UUID, content string) {
 
   if err := pu.pr.UpdateEmbedding(ctx, postID, resp.Embedding, resp.Model); err != nil {
     log.Printf("[Post] gagal simpan embedding post %s: %v", postID, err)
+    return
+  }
+
+  if pu.matching != nil {
+    log.Printf("[Post] trigger matching untuk post %s", postID)
+    pu.matching.ProcessMatchAsync(postID)
   }
 }
 
@@ -128,13 +134,8 @@ func (pu *PostUseCase) NewPost(ctx context.Context, req CreatePostRequest) (*Pos
     return nil, err
   }
 
-  if req.Tag == "CariMaterial" {
-    if pu.nlp != nil {
-      go pu.embedPostAsync(post.ID, post.Content)
-    }
-    if pu.matching != nil {
-      go pu.matching.ProcessMatchAsync(post.ID)
-    }
+  if req.Tag == "CariMaterial" && pu.nlp != nil {
+    go pu.embedPostAsync(post.ID, post.Content)
   }
 
   return &PostResponse{

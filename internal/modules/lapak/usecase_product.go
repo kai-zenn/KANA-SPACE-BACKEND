@@ -75,10 +75,6 @@ func (pu *ProductUseCase) embedProductAsync(productID uuid.UUID, description str
     log.Printf("[Product] gagal simpan embedding product %s: %v", productID, err)
     return
   }
-
-  if pu.matching != nil {
-    go pu.matching.ProcessMatchAsync(productID)
-  }
 }
 
 func (pu *ProductUseCase) NewProduct(ctx context.Context, req CreateProductRequest, requesterRole string) (*ProductResponse, error) {
