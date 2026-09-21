@@ -11,9 +11,14 @@ import (
 	"KANA-SPACE-BACKEND/internal/pkgs/nlpclient"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 const DefaultMatchRadiusMeters = 20000 // 20km
+
+type MatchingTrigger interface {
+	ProcessMatchAsync(postID uuid.UUID)
+}
 
 type IMatchingUseCase interface {
 	ProcessMatchAsync(postID uuid.UUID)
@@ -25,6 +30,7 @@ type MatchingUseCase struct {
 	matchRepo      IMatchRepository
 	notificationUC notification.INotificationUseCase
 	nlpClient      nlpclient.Client
+	db             *gorm.DB
 }
 
 func NewMatchingUseCase(
@@ -33,6 +39,7 @@ func NewMatchingUseCase(
 	matchRepo IMatchRepository,
 	notificationUC notification.INotificationUseCase,
 	nlpClient nlpclient.Client,
+	db *gorm.DB,
 ) *MatchingUseCase {
 	return &MatchingUseCase{
 		productRepo:    productRepo,
@@ -40,6 +47,7 @@ func NewMatchingUseCase(
 		matchRepo:      matchRepo,
 		notificationUC: notificationUC,
 		nlpClient:      nlpClient,
+		db:             db,
 	}
 }
 
@@ -109,8 +117,9 @@ func (mu *MatchingUseCase) findMatches(ctx context.Context, post *space.Post, ca
 		Candidates:     nlpCandidates,
 		Config: nlpclient.MatchRequestConfig{
 			BM25TopK:          10,
-			FinalTopK:         3,
+			FinalTopK:         5,
 			SemanticThreshold: 0.80,
+			Alpha:             0.2,
 		},
 	}
 
@@ -125,9 +134,62 @@ func (mu *MatchingUseCase) findMatches(ctx context.Context, post *space.Post, ca
 
 func (mu *MatchingUseCase) fallbackKeywordMatch(ctx context.Context, post *space.Post, candidates []ProductCandidate) ([]Match, error) {
 	log.Printf("[Matching] fallback keyword search untuk post %s", post.ID)
-	
-	// TODO: implementasi full-text search nanti
-	return []Match{}, nil
+
+	if len(candidates) == 0 {
+		return []Match{}, nil
+	}
+
+	candidateIDs := make([]string, len(candidates))
+	for i, c := range candidates {
+		candidateIDs[i] = c.ID.String()
+	}
+
+	type matchRow struct {
+		ID    string
+		Score float64
+	}
+
+	var rows []matchRow
+	err := mu.db.WithContext(ctx).Raw(`
+		SELECT id::text AS id,
+		       ts_rank(search_vector, plainto_tsquery('simple', ?)) AS score
+		FROM products
+		WHERE id = ANY(?::uuid[])
+		  AND search_vector @@ plainto_tsquery('simple', ?)
+		ORDER BY score DESC
+		LIMIT 3
+	`, post.Content, candidateIDs, post.Content).Scan(&rows).Error
+	if err != nil {
+		log.Printf("[Matching] fallback query error: %v", err)
+		return nil, err
+	}
+
+	matches := make([]Match, 0, len(rows))
+	for i, r := range rows {
+		listingID, err := uuid.Parse(r.ID)
+		if err != nil {
+			continue
+		}
+		matches = append(matches, Match{
+			ID:            uuid.New(),
+			RequestID:     post.ID,
+			ListingID:     listingID,
+			BM25Score:     r.Score,
+			SemanticScore: 0.0,
+			FinalScore:    r.Score,
+			Rank:          i + 1,
+			Status:        "SUGGESTED",
+		})
+	}
+
+	if len(matches) > 0 {
+		if err := mu.matchRepo.CreateMatches(ctx, matches); err != nil {
+			return nil, fmt.Errorf("gagal simpan fallback matches: %w", err)
+		}
+	}
+
+	log.Printf("[Matching] fallback keyword search selesai: %d matches", len(matches))
+	return matches, nil
 }
 
 func (mu *MatchingUseCase) persistMatches(ctx context.Context, postID uuid.UUID, results []nlpclient.MatchResult) ([]Match, error) {

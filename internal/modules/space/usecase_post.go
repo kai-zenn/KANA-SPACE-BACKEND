@@ -128,8 +128,13 @@ func (pu *PostUseCase) NewPost(ctx context.Context, req CreatePostRequest) (*Pos
     return nil, err
   }
 
-  if req.Tag == "CariMaterial" && pu.nlp != nil {
-    go pu.embedPostAsync(post.ID, post.Content)
+  if req.Tag == "CariMaterial" {
+    if pu.nlp != nil {
+      go pu.embedPostAsync(post.ID, post.Content)
+    }
+    if pu.matching != nil {
+      go pu.matching.ProcessMatchAsync(post.ID)
+    }
   }
 
   return &PostResponse{

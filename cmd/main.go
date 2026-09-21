@@ -93,6 +93,14 @@ func main() {
 	log.Fatalf("gagal inisialisasi firebase app: %v", err)
  }
  nlpClient := nlpclient.New(conf.NLPBaseURL, conf.NLPAPIKey)
+ 
+ ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+ if err := nlpClient.HealthCheck(ctx); err != nil {
+   log.Printf("[startup] NLP service tidak tersedia: %v — fitur matching akan fallback ke keyword search", err)
+ } else {
+   log.Println("[startup] NLP service OK")
+ }
+ cancel()
 
  router := gin.Default()
  app := rest.NewRest(router, db, jwtService, bcryptServic, store, nil, nlpClient, firebaseApp)

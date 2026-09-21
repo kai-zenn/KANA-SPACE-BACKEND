@@ -30,6 +30,7 @@ type MatchRequestConfig struct {
 	BM25TopK          int     `json:"bm25_top_k"`
 	FinalTopK         int     `json:"final_top_k"`
 	SemanticThreshold float64 `json:"semantic_threshold"`
+	Alpha             float64 `json:"alpha"`
 }
 
 type MatchResult struct {

@@ -106,8 +106,12 @@ func (r *Rest) MountEndPoint() {
 
 	chatAdapter := adapters.NewChatAdapter(messageRepo, chatRepo)
 
-	
-	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage)
+	spacePostR := space.NewPostRepository(r.db)
+	spaceLikeR := space.NewLikeRepository(r.db)
+	spaceCommentR := space.NewCommentRepository(r.db)
+
+	matchingUseCase := lapak.NewMatchingUseCase(lapakProductR, spacePostR, matchRepo, notifUseCase, r.nlp, r.db)
+	productUseCase := lapak.NewProductUseCase(lapakProductR, lapakCategoryR, userRepo, r.nlp, r.storage, matchingUseCase)
 	categoryUseCase := lapak.NewCategoryUseCase(lapakCategoryR)
 	transactionUseCase := lapak.NewTransactionUseCase(lapakTransactionR, lapakProductR, userRepo, chatAdapter)
 	
@@ -146,11 +150,6 @@ func (r *Rest) MountEndPoint() {
 	}
 
  // -- Space Module
-  spacePostR := space.NewPostRepository(r.db)
-  spaceLikeR := space.NewLikeRepository(r.db)
-  spaceCommentR := space.NewCommentRepository(r.db)
-
-  matchingUseCase := lapak.NewMatchingUseCase(lapakProductR, spacePostR, matchRepo, notifUseCase, r.nlp)
   spacePostUseCase := space.NewPostUseCase(spacePostR, spaceCommentR, spaceLikeR, r.nlp, userRepo, r.storage, matchingUseCase)
   spaceLikeUseCase := space.NewLikeUseCase(spaceLikeR, spacePostR)
   spaceCommentUseCase := space.NewCommentUseCase(spaceCommentR, spacePostR)

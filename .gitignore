@@ -8,4 +8,5 @@ kana-fcm-firebase-adminsdk-fbsvc-48a9e2579b.json
 .DS_Store
 .vscode/
 
+.env
 uploads/

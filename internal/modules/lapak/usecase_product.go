@@ -43,15 +43,16 @@ type IProductUseCase interface {
 }
 
 type ProductUseCase struct {
-	pr      IProductRepository
-	cr      ICategoryRepository
-	ur      user.IUserRepository
-	nlp     nlpclient.Client
-	storage storage.Interface
+	pr       IProductRepository
+	cr       ICategoryRepository
+	ur       user.IUserRepository
+	nlp      nlpclient.Client
+	storage  storage.Interface
+	matching MatchingTrigger
 }
 
-func NewProductUseCase(pr IProductRepository, cr ICategoryRepository, ur user.IUserRepository, nlp nlpclient.Client, storage storage.Interface) IProductUseCase {
-	return &ProductUseCase{pr: pr, cr: cr, ur: ur, nlp: nlp, storage: storage}
+func NewProductUseCase(pr IProductRepository, cr ICategoryRepository, ur user.IUserRepository, nlp nlpclient.Client, storage storage.Interface, matching MatchingTrigger) IProductUseCase {
+	return &ProductUseCase{pr: pr, cr: cr, ur: ur, nlp: nlp, storage: storage, matching: matching}
 }
 
 func (pu *ProductUseCase) embedProductAsync(productID uuid.UUID, description string) {
@@ -72,6 +73,11 @@ func (pu *ProductUseCase) embedProductAsync(productID uuid.UUID, description str
 
   if err := pu.pr.UpdateEmbedding(ctx, productID, resp.Embedding, resp.Model); err != nil {
     log.Printf("[Product] gagal simpan embedding product %s: %v", productID, err)
+    return
+  }
+
+  if pu.matching != nil {
+    go pu.matching.ProcessMatchAsync(productID)
   }
 }
 
