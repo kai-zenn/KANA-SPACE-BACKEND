@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -108,7 +108,7 @@ func (pr *PostRepository) UpdateEmbedding(ctx context.Context, postID uuid.UUID,
     Model(&Post{}).
     Where("id = ?", postID).
     Updates(map[string]interface{}{
-      "embedding":       pgtype.FlatArray[float64](embedding),
+      "embedding":       pq.Float64Array(embedding),
       "embedding_model": model,
     }).Error
 }

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/lib/pq"
 
 	"KANA-SPACE-BACKEND/internal/modules/user"
 )
@@ -34,7 +34,7 @@ type Post struct {
 	Latitude  *float64
 	Longitude *float64
 	// Placeholder NLP
-	Embedding      pgtype.FlatArray[float64] `gorm:"type:float8[]"`
+	Embedding      pq.Float64Array `gorm:"type:double precision[]"`
 	EmbeddingModel string          `gorm:"type:varchar(50)"`
 	RequestStatus  *string         `gorm:"type:varchar(20)"` // cuma relevan kalau Tag = CariMaterial
 	LikeCount    int `gorm:"not null;default:0"`
