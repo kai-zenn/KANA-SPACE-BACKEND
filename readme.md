@@ -330,10 +330,9 @@ Kategori menggunakan `parent_id` untuk struktur bertingkat. Product dan post dap
 Prioritas teknis yang paling dekat dengan kondisi repository:
 
 1. Implementasi dan wire Google ID token verifier.
-2. Memperbaiki fallback matching agar tetap berguna ketika service NLP tidak tersedia.
-3. Menambahkan test repository dan integration test untuk state machine transaksi.
-4. Memindahkan konfigurasi port, worker interval, radius matching, dan threshold NLP ke config.
-5. Menambahkan migration versioning, storage eksternal, dan observability untuk deployment production.
+2. Menambahkan test repository dan integration test untuk state machine transaksi.
+3. Memindahkan konfigurasi port, worker interval, radius matching, dan threshold NLP ke config.
+4. Menambahkan migration versioning, storage eksternal, dan observability untuk deployment production.
 
 ## Lisensi dan kontribusi
 
